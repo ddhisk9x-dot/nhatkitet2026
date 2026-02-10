@@ -1,0 +1,501 @@
+import React, { useState, useEffect } from 'react';
+import confetti from 'canvas-confetti';
+import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight } from 'lucide-react';
+import { getStudent, updateTask, updateParentConfirm, changePassword } from './services/supabaseService';
+import { Student, TASKS_LIST } from './types';
+import { TEACHER_PASSWORD, TEACHER_USERNAME, SUPABASE_URL } from './constants';
+import FallingBlossoms from './components/FallingBlossoms';
+import TeacherDashboard from './components/TeacherDashboard';
+
+// --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
+const SchoolLogo = () => (
+  <svg viewBox="0 0 100 100" className="w-16 h-16 sm:w-20 sm:h-20 shadow-lg rounded-lg overflow-hidden shrink-0">
+    <defs>
+      <mask id="mask">
+        <rect width="100" height="100" fill="white" />
+        {/* Geometric Cutouts mimic the logo provided */}
+        <rect x="15" y="15" width="70" height="70" stroke="black" strokeWidth="8" fill="none" />
+        <circle cx="50" cy="50" r="25" stroke="black" strokeWidth="8" fill="none" />
+        <path d="M15 15 L32 32 M85 15 L68 32 M85 85 L68 68 M15 85 L32 68" stroke="black" strokeWidth="6" />
+        <path d="M50 15 L50 25 M85 50 L75 50 M50 85 L50 75 M15 50 L25 50" stroke="black" strokeWidth="6" />
+      </mask>
+    </defs>
+    <rect width="100" height="100" fill="#D90429" />
+    <path d="M15 15 H85 V85 H15 Z" stroke="white" strokeWidth="6" fill="none" />
+    <circle cx="50" cy="50" r="28" stroke="white" strokeWidth="6" fill="none" />
+    <path d="M15 15 L30 30 M85 15 L70 30 M85 85 L70 70 M15 85 L30 70" stroke="white" strokeWidth="6" />
+    <path d="M50 15 L50 22 M85 50 L78 50 M50 85 L50 78 M15 50 L22 50" stroke="white" strokeWidth="6" />
+  </svg>
+);
+
+// --- COMPONENT: STAR RATING (Mobile Optimized) ---
+const StarRating = ({ value, onChange, disabled }: { value: number, onChange: (val: number) => void, disabled: boolean }) => {
+  const [hoverValue, setHoverValue] = useState<number | null>(null);
+  const stars = [1, 2, 3, 4, 5];
+
+  return (
+    <div className="flex items-center gap-2 sm:gap-1" onMouseLeave={() => setHoverValue(null)}>
+       {stars.map((starIndex) => {
+         const ratingValue = starIndex;
+         const isFull = (hoverValue !== null ? hoverValue : value) >= ratingValue;
+         
+         return (
+           <div key={starIndex} className="relative cursor-pointer w-10 h-10 sm:w-8 sm:h-8 md:w-10 md:h-10 transition-transform active:scale-90">
+              <div 
+                className="absolute left-0 top-0 w-1/2 h-full z-10"
+                onClick={() => !disabled && onChange(starIndex - 0.5)}
+                onMouseEnter={() => !disabled && setHoverValue(starIndex - 0.5)}
+              ></div>
+              <div 
+                className="absolute right-0 top-0 w-1/2 h-full z-10"
+                onClick={() => !disabled && onChange(starIndex)}
+                onMouseEnter={() => !disabled && setHoverValue(starIndex)}
+              ></div>
+              <Star 
+                className={`w-full h-full transition-all duration-200 drop-shadow-sm ${
+                  isFull 
+                    ? 'fill-yellow-400 text-yellow-400' 
+                    : (value >= starIndex - 0.5 && value < starIndex) || (hoverValue === starIndex - 0.5)
+                        ? 'fill-transparent text-yellow-400' 
+                        : 'text-gray-300'
+                }`}
+              />
+              {((value === starIndex - 0.5) || (hoverValue === starIndex - 0.5)) && (
+                 <div className="absolute top-0 left-0 w-[50%] h-full overflow-hidden pointer-events-none">
+                    <Star className="w-[200%] h-full fill-yellow-400 text-yellow-400" style={{ transform: 'translateX(0)' }} />
+                 </div>
+              )}
+           </div>
+         );
+       })}
+       <span className="ml-2 text-lg font-bold text-red-600 w-8">
+          {(hoverValue !== null ? hoverValue : value) > 0 ? (hoverValue !== null ? hoverValue : value) : ''}
+       </span>
+    </div>
+  );
+};
+
+const App: React.FC = () => {
+  // Login State
+  const [studentCode, setStudentCode] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [currentStudent, setCurrentStudent] = useState<Student | null>(null);
+  
+  // Teacher Login State
+  const [isTeacherMode, setIsTeacherMode] = useState(false);
+  const [isTeacherAuthenticated, setIsTeacherAuthenticated] = useState(false);
+  
+  // UI State
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+  
+  // Feature State
+  const [parentMessage, setParentMessage] = useState('');
+  
+  // Change Password Modal State
+  const [showPassModal, setShowPassModal] = useState(false);
+  const [passForm, setPassForm] = useState({ current: '', new: '', confirm: '' });
+  const [passError, setPassError] = useState('');
+  const [passLoading, setPassLoading] = useState(false);
+
+  // Check Configuration
+  const isMockMode = !SUPABASE_URL || SUPABASE_URL.includes('DÁN_URL_CỦA_BẠN');
+
+  useEffect(() => {
+    const savedCode = localStorage.getItem('student_code');
+    if (savedCode) {
+      setStudentCode(savedCode);
+    }
+  }, []);
+
+  const showToast = (msg: string) => {
+    setToast({ show: true, msg });
+    setTimeout(() => setToast({ show: false, msg: '' }), 2000);
+  };
+
+  const handleLogin = async () => {
+    if (isTeacherMode) {
+        if (studentCode.toLowerCase() === TEACHER_USERNAME.toLowerCase() && loginPassword === TEACHER_PASSWORD) {
+            setIsTeacherAuthenticated(true);
+            setError('');
+        } else {
+            setError('Tài khoản hoặc Mật khẩu GVCN không đúng!');
+        }
+        return;
+    }
+
+    if (!studentCode || !loginPassword) {
+      setError('Vui lòng nhập cả Mã số và Mật khẩu');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const { data, error: apiError } = await getStudent(studentCode);
+      if (apiError || !data) {
+        setError('Không tìm thấy mã số này.');
+      } else {
+        const dbPass = data.password || data.student_code;
+        if (loginPassword.trim() !== dbPass) {
+          setError('Mật khẩu không đúng.');
+        } else {
+          setCurrentStudent(data);
+          setParentMessage(data.parent_message || '');
+          localStorage.setItem('student_code', data.student_code);
+        }
+      }
+    } catch (e) {
+      setError('Lỗi hệ thống.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentStudent) return;
+    setPassError('');
+    if (!passForm.current || !passForm.new || !passForm.confirm) {
+      setPassError('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+    const realCurrentPass = currentStudent.password || currentStudent.student_code;
+    if (passForm.current.trim() !== realCurrentPass) {
+      setPassError('Mật khẩu hiện tại không đúng');
+      return;
+    }
+    if (passForm.new !== passForm.confirm) {
+      setPassError('Mật khẩu mới không khớp');
+      return;
+    }
+    if (passForm.new.length < 4) {
+      setPassError('Mật khẩu mới phải có ít nhất 4 ký tự');
+      return;
+    }
+
+    setPassLoading(true);
+    const { error } = await changePassword(currentStudent.student_code, passForm.new.trim());
+    setPassLoading(false);
+
+    if (error) {
+      setPassError('Đã có lỗi xảy ra.');
+    } else {
+      setCurrentStudent({ ...currentStudent, password: passForm.new.trim() });
+      setShowPassModal(false);
+      setPassForm({ current: '', new: '', confirm: '' });
+      showToast('Đổi mật khẩu thành công!');
+    }
+  };
+
+  const handleTaskRating = async (taskKey: keyof Student, newValue: number) => {
+    if (!currentStudent) return;
+    const updatedStudent = { ...currentStudent, [taskKey]: newValue };
+    setCurrentStudent(updatedStudent);
+    let total = 0;
+    TASKS_LIST.forEach(t => {
+       const val = t.id === taskKey ? newValue : updatedStudent[t.id] as number;
+       total += val;
+    });
+    if (total >= 45) triggerConfetti();
+    await updateTask(currentStudent.student_code, taskKey as string, newValue);
+  };
+
+  const handleParentSubmit = async () => {
+    if (!currentStudent) return;
+    setLoading(true);
+    await updateParentConfirm(currentStudent.student_code, true, parentMessage);
+    setCurrentStudent({
+        ...currentStudent,
+        parent_confirm: true,
+        parent_message: parentMessage
+    });
+    setLoading(false);
+    showToast("Đã gửi xác nhận của phụ huynh!");
+    triggerConfetti();
+  };
+
+  const triggerConfetti = () => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    const frame = () => {
+      confetti({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ['#D90429', '#FFD60A']
+      });
+      confetti({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: ['#D90429', '#FFD60A']
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    };
+    frame();
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('student_code');
+    setCurrentStudent(null);
+    setStudentCode('');
+    setLoginPassword('');
+    setParentMessage('');
+    setIsTeacherAuthenticated(false);
+    setIsTeacherMode(false);
+  };
+
+  // Helper Stats
+  const getStats = (student: Student) => {
+    let totalScore = 0;
+    TASKS_LIST.forEach(task => totalScore += (student[task.id] as number) || 0);
+    const maxScore = TASKS_LIST.length * 5; 
+    const percent = (totalScore / maxScore) * 100;
+
+    let rank = { title: "Hạt Giống", color: "bg-gray-100 text-gray-600" };
+    if (percent >= 90) rank = { title: "Đại Sứ Mùa Xuân 🏆", color: "bg-gradient-to-r from-yellow-300 to-yellow-500 text-red-800" };
+    else if (percent >= 70) rank = { title: "Hoa Đào Rực Rỡ 🌸", color: "bg-pink-100 text-pink-700" };
+    else if (percent >= 40) rank = { title: "Chồi Non Tích Cực 🌿", color: "bg-green-100 text-green-700" };
+
+    return { totalScore, maxScore, percent, rank };
+  };
+
+  // --- RENDER TEACHER DASHBOARD ---
+  if (isTeacherAuthenticated) {
+      return (
+        <>
+            {isMockMode && <div className="bg-yellow-400 text-red-900 text-center text-[10px] font-bold sticky top-0 z-50">⚠️ DEMO MODE</div>}
+            <TeacherDashboard onLogout={handleLogout} />
+        </>
+      );
+  }
+
+  // --- RENDER LOGIN ---
+  if (!currentStudent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-red-600 to-red-800">
+        <FallingBlossoms />
+        {isMockMode && (
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/20 backdrop-blur rounded-full px-4 py-1 text-white text-xs font-bold border border-white/30 flex items-center gap-2">
+                <Database size={12} /> CHẾ ĐỘ DEMO
+            </div>
+        )}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative z-10 border-4 border-yellow-400 animate-fade-in-up">
+          <div className="flex flex-col items-center mb-6 gap-2">
+            <SchoolLogo />
+            <div className="text-center">
+                <h1 className="text-3xl font-hand font-bold text-red-600 mb-1">Nhật Ký Tết 2026</h1>
+                <p className="text-gray-600 font-sans font-bold text-lg">{isTeacherMode ? 'Đăng Nhập GVCN' : 'Lớp 8B03'}</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">{isTeacherMode ? 'Tài khoản GVCN' : 'Mã Số Học Sinh'}</label>
+            <div className="relative">
+                <input type="text" value={studentCode} onChange={(e) => setStudentCode(isTeacherMode ? e.target.value : e.target.value.toUpperCase())}
+                placeholder={isTeacherMode ? 'Tên đăng nhập' : 'Nhập mã số học sinh'} className="w-full pl-4 pr-10 py-3 border-2 border-red-100 rounded-xl focus:outline-none focus:border-red-500 text-lg font-bold tracking-widest" />
+                <User className="absolute right-3 top-3.5 text-gray-400" size={20} />
+            </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Mật khẩu</label>
+              <div className="relative">
+                <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Nhập mật khẩu" className="w-full pl-4 pr-10 py-3 border-2 border-red-100 rounded-xl focus:outline-none focus:border-red-500 text-lg" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+                <Lock className="absolute right-3 top-3.5 text-gray-400" size={20} />
+              </div>
+            </div>
+            {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center gap-2"><AlertCircle size={16} /> {error}</div>}
+            <button onClick={handleLogin} disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-yellow-300 font-bold py-3 rounded-xl shadow-lg transition transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+              {loading ? 'Đang kiểm tra...' : <><LogIn size={20} /> {isTeacherMode ? 'Vào Quản Lý' : 'Đăng nhập'}</>}
+            </button>
+          </div>
+          <div className="mt-6 text-center text-xs">
+            {!isTeacherMode ? <button onClick={() => { setIsTeacherMode(true); setError(''); setLoginPassword(''); setStudentCode(''); }} className="text-red-600 font-bold hover:underline flex items-center justify-center gap-1 w-full"><ShieldCheck size={14}/> Dành cho GVCN</button> 
+            : <button onClick={() => { setIsTeacherMode(false); setError(''); setLoginPassword(''); setStudentCode(''); }} className="text-blue-600 font-bold hover:underline">← Quay lại Đăng nhập Học sinh</button>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- MAIN APP RENDER ---
+  const { totalScore, maxScore, percent, rank } = getStats(currentStudent);
+  
+  // Define Milestones
+  const milestones = [
+    { pct: 70, label: "70% Sao", reward: "3 Điểm Văn Minh", type: "point" },
+    { pct: 80, label: "80% Sao", reward: "+5 Điểm Văn Minh", type: "point" },
+    { pct: 90, label: "90% Sao", reward: "+10 Điểm Văn Minh", type: "point" },
+    { pct: 95, label: "95% Sao", reward: "+10.000đ Lì Xì", type: "money" },
+    { pct: 100, label: "100% Sao", reward: "+20.000đ Lì Xì", type: "money" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-tetCream relative pb-24">
+      <FallingBlossoms />
+      {isMockMode && <div className="bg-yellow-400 text-red-900 text-center text-[10px] py-1 font-bold sticky top-0 z-50">⚠️ Chế độ Demo</div>}
+      {toast.show && <div className="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-2 rounded-full shadow-xl animate-fade-in-down flex items-center gap-2 whitespace-nowrap"><CheckCircle size={18} /> {toast.msg}</div>}
+
+      {/* Change Pass Modal */}
+      {showPassModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 relative animate-fade-in shadow-2xl">
+            <button onClick={() => setShowPassModal(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><X size={24} /></button>
+            <h3 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2"><Key size={20} /> Đổi Mật Khẩu</h3>
+            <div className="space-y-3">
+               <div><label className="text-xs font-bold text-gray-500">Mật khẩu hiện tại</label><input type="password" className="w-full p-3 border rounded-lg" value={passForm.current} onChange={e => setPassForm({...passForm, current: e.target.value})} /></div>
+               <div><label className="text-xs font-bold text-gray-500">Mật khẩu mới</label><input type="password" className="w-full p-3 border rounded-lg" value={passForm.new} onChange={e => setPassForm({...passForm, new: e.target.value})} /></div>
+               <div><label className="text-xs font-bold text-gray-500">Nhập lại</label><input type="password" className="w-full p-3 border rounded-lg" value={passForm.confirm} onChange={e => setPassForm({...passForm, confirm: e.target.value})} /></div>
+               {passError && <div className="text-red-500 text-sm font-bold">{passError}</div>}
+               <button onClick={handleChangePassword} disabled={passLoading} className="w-full bg-red-600 text-white font-bold py-3 rounded-lg shadow mt-2 hover:bg-red-700 disabled:bg-gray-400">{passLoading ? 'Đang xử lý...' : 'Lưu Thay Đổi'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      <header className="bg-red-600 text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]">
+        <div className="flex justify-between items-start max-w-2xl mx-auto">
+          <div className="flex items-center gap-3">
+             <SchoolLogo />
+             <div>
+                <h2 className="text-lg sm:text-xl font-bold font-hand truncate max-w-[150px] sm:max-w-xs">{currentStudent.full_name}</h2>
+                <div className="flex items-center gap-2 mt-1">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm ${rank.color}`}>{rank.title}</span>
+                </div>
+             </div>
+          </div>
+          <div className="flex gap-2">
+             <button onClick={() => setShowPassModal(true)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner"><Key size={16} /></button>
+             <button onClick={handleLogout} className="text-xs bg-red-800 px-3 py-1 rounded-full text-white hover:bg-red-900 transition flex items-center shadow-inner">Thoát</button>
+          </div>
+        </div>
+        
+        {/* Progress Bar */}
+        <div className="max-w-2xl mx-auto mt-4 px-1">
+          <div className="flex justify-between text-xs text-red-100 mb-1 font-bold">
+            <span>Điểm tích lũy: {totalScore}/{maxScore}</span>
+            <span>{Math.round(percent)}%</span>
+          </div>
+          <div className="w-full bg-red-900/40 rounded-full h-3 shadow-inner overflow-hidden border border-red-500/30">
+            <div className="bg-yellow-400 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(255,214,10,0.7)] relative" style={{ width: `${percent}%` }}>
+                <div className="absolute top-0 left-0 w-full h-full bg-white/20 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto p-4 space-y-4 relative z-10 -mt-6">
+        
+        {/* REWARD LIST BOX */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+            <div className="bg-gradient-to-r from-red-50 to-orange-50 p-3 border-b border-red-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Gift className="text-red-500" size={20} />
+                    <span className="font-bold text-red-800">Tháp Phần Thưởng</span>
+                </div>
+                <span className="text-xs text-gray-500 italic">Cộng dồn các mốc</span>
+            </div>
+            
+            <div className="divide-y divide-gray-100">
+                {milestones.map((m, idx) => {
+                    const isReached = percent >= m.pct;
+                    const isUnlocked = isReached && currentStudent.parent_confirm;
+                    
+                    return (
+                        <div key={idx} className={`flex items-center justify-between p-3 ${isUnlocked ? 'bg-yellow-50/50' : ''}`}>
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 
+                                    ${isUnlocked ? 'border-green-500 bg-green-100 text-green-600' : 
+                                      isReached ? 'border-orange-400 bg-orange-100 text-orange-600' : 
+                                      'border-gray-200 bg-gray-50 text-gray-300'}`}>
+                                    {isUnlocked ? <Unlock size={18} /> : (isReached ? <Lock size={18} className="animate-pulse" /> : <Lock size={18} />)}
+                                </div>
+                                <div>
+                                    <div className={`text-xs font-bold uppercase ${isReached ? 'text-gray-700' : 'text-gray-400'}`}>{m.label}</div>
+                                    <div className={`font-bold text-sm ${isUnlocked ? 'text-green-600' : (isReached ? 'text-orange-500' : 'text-gray-400')}`}>
+                                        {m.reward}
+                                    </div>
+                                </div>
+                            </div>
+                            {isReached && !isUnlocked && (
+                                <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold whitespace-nowrap">Chờ xác nhận</span>
+                            )}
+                            {isUnlocked && <CheckCircle size={16} className="text-green-500" />}
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+
+        {/* Guide */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-yellow-200 text-sm sm:text-xs text-gray-600 flex gap-2 items-start leading-relaxed">
+            <HelpCircle size={16} className="text-yellow-500 shrink-0 mt-0.5" />
+            <p>
+               <b>Hướng dẫn:</b> Hãy tự đánh giá nhiệm vụ. <br className="block sm:hidden"/>
+               <span className="text-yellow-600 font-bold whitespace-nowrap">5 sao</span> = Xuất sắc. 
+               <span className="text-yellow-600 font-bold whitespace-nowrap ml-2">1-2 sao</span> = Cần cố gắng.
+            </p>
+        </div>
+
+        {/* Tasks Grid */}
+        <div className="grid grid-cols-1 gap-4">
+          {TASKS_LIST.map((task) => (
+            <div key={task.id} className={`p-4 rounded-xl shadow-md border-l-4 transition-all duration-300 bg-white border-gray-200 ${(currentStudent[task.id] as number) > 0 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
+              <div className="flex gap-3 mb-3">
+                <span className="text-4xl sm:text-3xl">{task.icon}</span>
+                <div className="flex-1">
+                    <h3 className="font-bold text-lg font-hand text-red-700">{task.title}</h3>
+                    <p className="text-sm sm:text-xs text-gray-700 mt-1 font-medium leading-relaxed">{task.description}</p>
+                    <p className="text-xs sm:text-[10px] text-gray-500 mt-2 italic border-t pt-1 border-dashed border-gray-200">🎯 {task.criteria}</p>
+                </div>
+              </div>
+              <div className="border-t pt-3 flex justify-center">
+                  <StarRating value={currentStudent[task.id] as number} onChange={(val) => handleTaskRating(task.id, val)} disabled={currentStudent.parent_confirm} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Parent Section */}
+        <div className="mt-8 bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl border-2 border-red-100">
+          <h3 className="text-xl font-bold text-red-600 flex items-center gap-2 mb-4"><Award className="text-yellow-500" /> Phụ Huynh Xác Nhận</h3>
+          {currentStudent.parent_confirm ? (
+            <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-200 relative overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-red-500"></div>
+              <div className="text-green-600 font-bold text-lg mb-2 flex items-center justify-center gap-2"><CheckCircle size={20} /> Đã xác nhận</div>
+              <p className="italic text-gray-700 font-hand text-lg leading-relaxed">"{currentStudent.parent_message}"</p>
+              <div className="mt-3 text-xs text-gray-400 flex justify-center items-center gap-1"><Star size={10} fill="currentColor" /> Gia đình hạnh phúc <Star size={10} fill="currentColor" /></div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                  Sau khi con hoàn thành các nhiệm vụ, ba mẹ hãy kiểm tra cho con và bấm xác nhận nhé!
+                  <br/><span className="text-xs text-red-500 font-normal italic">*Mỗi mốc bố mẹ cần xác nhận để mở tiếp.</span>
+              </p>
+              <textarea className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base" rows={3} placeholder="Lời chúc của ba mẹ dành cho con..." value={parentMessage} onChange={(e) => setParentMessage(e.target.value)}></textarea>
+              <div className="flex items-center gap-3 mb-2 bg-gray-50 p-2 rounded cursor-pointer" onClick={() => !parentMessage && document.querySelector('textarea')?.focus()}>
+                <input type="checkbox" id="confirm" className="w-5 h-5 text-red-600 rounded focus:ring-red-500" checked={parentMessage.length > 0} readOnly />
+                <label htmlFor="confirm" className="text-sm font-bold text-gray-700 pointer-events-none">Xác nhận con đã làm việc tốt</label>
+              </div>
+              <button onClick={handleParentSubmit} disabled={loading || !parentMessage} className="w-full bg-red-600 text-white font-bold py-4 rounded-lg shadow hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2 transition-transform active:scale-95 text-lg">
+                 {loading ? 'Đang gửi...' : <><Save size={20} /> Gửi xác nhận</>}
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <footer className="text-center p-4 text-gray-500 text-xs mt-8 pb-10 space-y-1">
+        <p className="font-bold text-red-800 uppercase tracking-wide">LỚP 8B03 - Trường TH,THCS & THPT Ngôi Sao Hoàng Mai</p>
+        <p>Chúc Mừng Năm Mới 2026</p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
