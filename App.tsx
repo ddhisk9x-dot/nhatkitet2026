@@ -53,10 +53,10 @@ const StarRating = ({ value, onChange, disabled }: { value: number, onChange: (v
             ></div>
             <Star
               className={`w-full h-full transition-all duration-200 drop-shadow-sm ${isFull
-                  ? 'fill-yellow-400 text-yellow-400'
-                  : (value >= starIndex - 0.5 && value < starIndex) || (hoverValue === starIndex - 0.5)
-                    ? 'fill-transparent text-yellow-400'
-                    : 'text-gray-300'
+                ? 'fill-yellow-400 text-yellow-400'
+                : (value >= starIndex - 0.5 && value < starIndex) || (hoverValue === starIndex - 0.5)
+                  ? 'fill-transparent text-yellow-400'
+                  : 'text-gray-300'
                 }`}
             />
             {((value === starIndex - 0.5) || (hoverValue === starIndex - 0.5)) && (
@@ -486,7 +486,7 @@ const App: React.FC = () => {
                 Sau khi con hoàn thành các nhiệm vụ, ba mẹ hãy kiểm tra cho con và bấm xác nhận nhé!
                 <br /><span className="text-xs text-red-500 font-normal italic">*Mỗi mốc bố mẹ cần xác nhận để mở tiếp.</span>
               </p>
-              <textarea className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base" rows={3} placeholder="Lời chúc của ba mẹ dành cho con..." value={parentMessage} onChange={(e) => setParentMessage(e.target.value)}></textarea>
+              <textarea className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base" rows={3} placeholder="Nội dung xác nhận của bố mẹ...." value={parentMessage} onChange={(e) => setParentMessage(e.target.value)}></textarea>
               <div className="flex items-center gap-3 mb-2 bg-gray-50 p-2 rounded cursor-pointer" onClick={() => !parentMessage && document.querySelector('textarea')?.focus()}>
                 <input type="checkbox" id="confirm" className="w-5 h-5 text-red-600 rounded focus:ring-red-500" checked={parentMessage.length > 0} readOnly />
                 <label htmlFor="confirm" className="text-sm font-bold text-gray-700 pointer-events-none">Xác nhận con đã làm việc tốt</label>
