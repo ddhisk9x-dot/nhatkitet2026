@@ -248,15 +248,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
             <div className="flex justify-end mb-4">
               <button
-                onClick={() => {
-                  if (window.confirm(`⚠️ Nguy hiểm: Bạn có chắc muốn xóa TOÀN BỘ SAO của ${selectedStudent.full_name}? Hành động này không thể hoàn tác!`)) {
-                    TASKS_LIST.forEach(t => handleTaskChange(t.id, 0));
-                    alert("Đã reset toàn bộ sao thành công!");
-                  }
-                }}
+                onClick={handleResetAll}
+                disabled={processing}
                 className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold flex items-center gap-1"
               >
-                <RefreshCw size={12} /> Reset Tất Cả Sao
+                <RefreshCw size={12} className={processing ? "animate-spin" : ""} /> {processing ? "Đang xử lý..." : "Reset Tất Cả (Sao + Duyệt)"}
               </button>
             </div>
 
