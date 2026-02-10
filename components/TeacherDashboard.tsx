@@ -12,7 +12,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  
+
   // Edit states
   const [editMessage, setEditMessage] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -30,11 +30,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
   const handleResetPassword = async (student: Student) => {
     if (!window.confirm(`Xác nhận reset mật khẩu cho em ${student.full_name} về mặc định (${student.student_code})?`)) return;
-    
+
     setProcessing(true);
     const { error } = await resetStudentPassword(student.student_code);
     setProcessing(false);
-    
+
     if (!error) {
       alert(`Đã reset mật khẩu cho ${student.full_name} thành công!`);
     } else {
@@ -54,10 +54,10 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
   const handleTaskChange = async (taskKey: string, newValue: number) => {
     if (!selectedStudent) return;
-    
+
     // Optimistic update
     setSelectedStudent({ ...selectedStudent, [taskKey]: newValue } as any);
-    
+
     await updateTask(selectedStudent.student_code, taskKey, newValue);
   };
 
@@ -70,11 +70,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     closeEditModal();
   };
 
-  const filteredStudents = students.filter(s => 
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredStudents = students.filter(s =>
+    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.student_code.includes(searchTerm)
   );
-  
+
   // Duplicate calculation logic here for display
   const calculateRewards = (totalStars: number) => {
     const maxStars = TASKS_LIST.length * 5;
@@ -96,8 +96,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
       {/* Header */}
       <header className="bg-red-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
         <div>
-           <h1 className="text-xl font-bold font-hand">Trang Quản Lý GVCN</h1>
-           <p className="text-xs text-red-100">Lớp 8B03 - Sĩ số: {students.length}</p>
+          <h1 className="text-xl font-bold font-hand">Trang Quản Lý GVCN</h1>
+          <p className="text-xs text-red-100">Lớp 8B03 - Sĩ số: {students.length}</p>
         </div>
         <button onClick={onLogout} className="bg-red-800 p-2 rounded hover:bg-red-900 flex items-center gap-1 text-sm">
           <LogOut size={16} /> Thoát
@@ -107,181 +107,195 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
       <main className="max-w-4xl mx-auto p-4">
         {/* Search */}
         <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-2 sticky top-20 z-20">
-            <Search className="text-gray-400" />
-            <input 
-                type="text" 
-                placeholder="Tìm tên hoặc mã số HS..." 
-                className="flex-1 outline-none text-gray-700"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-            />
+          <Search className="text-gray-400" />
+          <input
+            type="text"
+            placeholder="Tìm tên hoặc mã số HS..."
+            className="flex-1 outline-none text-gray-700"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
         </div>
 
         {loading ? (
-           <div className="text-center py-10 text-gray-500">Đang tải danh sách...</div>
+          <div className="text-center py-10 text-gray-500">Đang tải danh sách...</div>
         ) : (
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredStudents.map(student => {
-                 let totalScore = 0;
-                 TASKS_LIST.forEach(t => totalScore += (student[t.id] as number));
-                 const maxScore = TASKS_LIST.length * 5;
-                 const { civilPoints, money, percent } = calculateRewards(totalScore);
-                 const isConfirmed = student.parent_confirm;
-                 
-                 return (
-                    <div key={student.student_code} className={`bg-white p-4 rounded-xl shadow border-l-4 hover:shadow-lg transition relative ${isConfirmed ? 'border-l-green-500' : 'border-l-orange-500'}`}>
-                        {/* Parent Confirm Status Badge */}
-                        <div className="absolute top-2 right-2">
-                             {isConfirmed ? (
-                                <span className="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                                    <CheckCircle size={10} /> Đã duyệt
-                                </span>
-                             ) : (
-                                <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                                    <Clock size={10} /> Chờ PH
-                                </span>
-                             )}
-                        </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredStudents.map(student => {
+              let totalScore = 0;
+              TASKS_LIST.forEach(t => totalScore += (student[t.id] as number));
+              const maxScore = TASKS_LIST.length * 5;
+              const { civilPoints, money, percent } = calculateRewards(totalScore);
+              const isConfirmed = student.parent_confirm;
 
-                        <div className="flex justify-between items-start mb-2 pr-16">
-                           <div>
-                              <h3 className="font-bold text-gray-800">{student.full_name}</h3>
-                              <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
-                           </div>
-                        </div>
+              return (
+                <div key={student.student_code} className={`bg-white p-4 rounded-xl shadow border-l-4 hover:shadow-lg transition relative ${isConfirmed ? 'border-l-green-500' : 'border-l-orange-500'}`}>
+                  {/* Parent Confirm Status Badge */}
+                  <div className="absolute top-2 right-2">
+                    {isConfirmed ? (
+                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        <CheckCircle size={10} /> Đã duyệt
+                      </span>
+                    ) : (
+                      <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                        <Clock size={10} /> Chờ PH
+                      </span>
+                    )}
+                  </div>
 
-                        {/* Mini Progress Bar */}
-                        <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                            <span>Tiến độ: {Math.round(percent)}%</span>
-                            <span>{totalScore}/{maxScore} sao</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                          <div className={`h-2 rounded-full transition-all ${isConfirmed ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${percent}%` }}></div>
-                        </div>
-                        
-                        {/* Reward Summary */}
-                        <div className="flex gap-2 mb-3 text-xs">
-                             <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && civilPoints > 0 ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
-                                {isConfirmed ? <CheckCircle size={10}/> : <Lock size={10}/>} +{civilPoints} Điểm
-                             </div>
-                             <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && money > 0 ? 'bg-red-50 border-red-200 text-red-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
-                                {isConfirmed ? <Gift size={10}/> : <Lock size={10}/>} +{money > 0 ? money/1000 + 'k' : '0đ'}
-                             </div>
-                        </div>
-
-                        <div className="flex gap-2 mt-2">
-                           <button 
-                             onClick={() => openEditModal(student)}
-                             className="flex-1 bg-blue-50 text-blue-600 py-2 rounded text-sm font-bold hover:bg-blue-100 flex justify-center items-center gap-1"
-                           >
-                              <Edit size={14} /> Chấm điểm
-                           </button>
-                           <button 
-                             onClick={() => handleResetPassword(student)}
-                             className="bg-gray-100 text-gray-600 p-2 rounded hover:bg-gray-200 text-xs flex flex-col items-center justify-center w-16"
-                             title="Reset Mật khẩu về mặc định"
-                           >
-                              <RefreshCw size={14} />
-                              <span className="scale-75">Reset</span>
-                           </button>
-                        </div>
+                  <div className="flex justify-between items-start mb-2 pr-16">
+                    <div>
+                      <h3 className="font-bold text-gray-800">{student.full_name}</h3>
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
                     </div>
-                 );
-              })}
-           </div>
+                  </div>
+
+                  {/* Mini Progress Bar */}
+                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>Tiến độ: {Math.round(percent)}%</span>
+                    <span>{totalScore}/{maxScore} sao</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                    <div className={`h-2 rounded-full transition-all ${isConfirmed ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${percent}%` }}></div>
+                  </div>
+
+                  {/* Reward Summary */}
+                  <div className="flex gap-2 mb-3 text-xs">
+                    <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && civilPoints > 0 ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
+                      {isConfirmed ? <CheckCircle size={10} /> : <Lock size={10} />} +{civilPoints} Điểm
+                    </div>
+                    <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && money > 0 ? 'bg-red-50 border-red-200 text-red-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
+                      {isConfirmed ? <Gift size={10} /> : <Lock size={10} />} +{money > 0 ? money / 1000 + 'k' : '0đ'}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => openEditModal(student)}
+                      className="flex-1 bg-blue-50 text-blue-600 py-2 rounded text-sm font-bold hover:bg-blue-100 flex justify-center items-center gap-1"
+                    >
+                      <Edit size={14} /> Chấm điểm
+                    </button>
+                    <button
+                      onClick={() => handleResetPassword(student)}
+                      className="bg-gray-100 text-gray-600 p-2 rounded hover:bg-gray-200 text-xs flex flex-col items-center justify-center w-16"
+                      title="Reset Mật khẩu về mặc định"
+                    >
+                      <RefreshCw size={14} />
+                      <span className="scale-75">Reset</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
       </main>
 
       {/* Modal Edit Detail */}
       {selectedStudent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
-                <button onClick={closeEditModal} className="absolute top-4 right-4 text-gray-400 hover:text-black"><XCircle /></button>
-                
-                <h2 className="text-2xl font-bold text-red-600 mb-1">{selectedStudent.full_name}</h2>
-                <p className="text-sm text-gray-500 mb-4">Mã số: {selectedStudent.student_code}</p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
+            <button onClick={closeEditModal} className="absolute top-4 right-4 text-gray-400 hover:text-black"><XCircle /></button>
 
-                {/* Password Info */}
-                <div className="bg-yellow-50 p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
-                    <span className="text-yellow-800 font-bold flex items-center gap-2">
-                        <Key size={16}/> Mật khẩu hiện tại: 
-                        <span className="font-mono bg-white px-2 py-0.5 rounded border">
-                            {selectedStudent.password || selectedStudent.student_code}
-                        </span>
-                    </span>
-                    <button 
-                        onClick={() => handleResetPassword(selectedStudent)}
-                        className="text-xs text-blue-600 underline"
-                    >
-                        Reset
-                    </button>
+            <h2 className="text-2xl font-bold text-red-600 mb-1">{selectedStudent.full_name}</h2>
+            <p className="text-sm text-gray-500 mb-4">Mã số: {selectedStudent.student_code}</p>
+
+            {/* Password Info */}
+            <div className="bg-yellow-50 p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
+              <span className="text-yellow-800 font-bold flex items-center gap-2">
+                <Key size={16} /> Mật khẩu hiện tại:
+                <span className="font-mono bg-white px-2 py-0.5 rounded border">
+                  {selectedStudent.password || selectedStudent.student_code}
+                </span>
+              </span>
+              <button
+                onClick={() => handleResetPassword(selectedStudent)}
+                className="text-xs text-blue-600 underline"
+              >
+                Reset
+              </button>
+            </div>
+
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={() => {
+                  if (window.confirm(`⚠️ Nguy hiểm: Bạn có chắc muốn xóa TOÀN BỘ SAO của ${selectedStudent.full_name}? Hành động này không thể hoàn tác!`)) {
+                    TASKS_LIST.forEach(t => handleTaskChange(t.id, 0));
+                    alert("Đã reset toàn bộ sao thành công!");
+                  }
+                }}
+                className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold flex items-center gap-1"
+              >
+                <RefreshCw size={12} /> Reset Tất Cả Sao
+              </button>
+            </div>
+
+            {/* Reward Detail in Modal */}
+            {(() => {
+              let totalScore = 0;
+              TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number));
+              const { civilPoints, money } = calculateRewards(totalScore);
+              const isConfirmed = selectedStudent.parent_confirm;
+
+              return (
+                <div className={`p-4 rounded-xl border mb-4 flex items-center justify-between ${isConfirmed ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
+                  <div className="flex items-center gap-3">
+                    <Gift className={isConfirmed ? "text-green-600" : "text-gray-400"} />
+                    <div>
+                      <div className="text-xs text-gray-500 font-bold uppercase mb-1">
+                        Tổng Phần Thưởng {isConfirmed ? '(Đã duyệt)' : '(Chờ PH duyệt)'}
+                      </div>
+                      <div className={`font-bold ${isConfirmed ? 'text-green-800' : 'text-gray-500'}`}>
+                        +{civilPoints} điểm Văn Minh
+                        {money > 0 && <span className={`${isConfirmed ? 'text-red-600' : 'text-gray-500'} ml-1`}> & {money / 1000}k Lì Xì</span>}
+                      </div>
+                    </div>
+                  </div>
+                  {!isConfirmed && <Lock className="text-gray-400" />}
                 </div>
-                
-                {/* Reward Detail in Modal */}
-                {(() => {
-                     let totalScore = 0;
-                     TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number));
-                     const { civilPoints, money } = calculateRewards(totalScore);
-                     const isConfirmed = selectedStudent.parent_confirm;
+              )
+            })()}
 
-                     return (
-                         <div className={`p-4 rounded-xl border mb-4 flex items-center justify-between ${isConfirmed ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
-                            <div className="flex items-center gap-3">
-                                <Gift className={isConfirmed ? "text-green-600" : "text-gray-400"} />
-                                <div>
-                                    <div className="text-xs text-gray-500 font-bold uppercase mb-1">
-                                        Tổng Phần Thưởng {isConfirmed ? '(Đã duyệt)' : '(Chờ PH duyệt)'}
-                                    </div>
-                                    <div className={`font-bold ${isConfirmed ? 'text-green-800' : 'text-gray-500'}`}>
-                                        +{civilPoints} điểm Văn Minh
-                                        {money > 0 && <span className={`${isConfirmed ? 'text-red-600' : 'text-gray-500'} ml-1`}> & {money/1000}k Lì Xì</span>}
-                                    </div>
-                                </div>
-                            </div>
-                            {!isConfirmed && <Lock className="text-gray-400" />}
-                         </div>
-                     )
-                })()}
-
-                {/* Tasks */}
-                <h3 className="font-bold text-gray-700 mb-2">Chấm điểm chi tiết</h3>
-                <div className="grid grid-cols-1 gap-2 mb-6 max-h-60 overflow-y-auto pr-2">
-                    {TASKS_LIST.map(task => (
-                        <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
-                            <div className="flex items-center gap-2 flex-1">
-                                <span>{task.icon}</span>
-                                <span className="text-sm font-medium">{task.title}</span>
-                            </div>
-                            <input 
-                                type="number" 
-                                min="0" max="5" step="0.5"
-                                className="w-16 border rounded p-1 text-center font-bold"
-                                value={selectedStudent[task.id] as number}
-                                onChange={(e) => handleTaskChange(task.id, parseFloat(e.target.value))}
-                            />
-                        </div>
-                    ))}
+            {/* Tasks */}
+            <h3 className="font-bold text-gray-700 mb-2">Chấm điểm chi tiết</h3>
+            <div className="grid grid-cols-1 gap-2 mb-6 max-h-60 overflow-y-auto pr-2">
+              {TASKS_LIST.map(task => (
+                <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                  <div className="flex items-center gap-2 flex-1">
+                    <span>{task.icon}</span>
+                    <span className="text-sm font-medium">{task.title}</span>
+                  </div>
+                  <input
+                    type="number"
+                    min="0" max="5" step="0.5"
+                    className="w-16 border rounded p-1 text-center font-bold"
+                    value={selectedStudent[task.id] as number}
+                    onChange={(e) => handleTaskChange(task.id, parseFloat(e.target.value))}
+                  />
                 </div>
+              ))}
+            </div>
 
-                {/* Teacher Message */}
-                <h3 className="font-bold text-gray-700 mb-2">Lời chúc / Nhận xét của GVCN</h3>
-                <textarea 
-                    className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-4"
-                    rows={3}
-                    placeholder="Nhập lời nhận xét..."
-                    value={editMessage}
-                    onChange={(e) => setEditMessage(e.target.value)}
-                ></textarea>
+            {/* Teacher Message */}
+            <h3 className="font-bold text-gray-700 mb-2">Lời chúc / Nhận xét của GVCN</h3>
+            <textarea
+              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-4"
+              rows={3}
+              placeholder="Nhập lời nhận xét..."
+              value={editMessage}
+              onChange={(e) => setEditMessage(e.target.value)}
+            ></textarea>
 
-                <button 
-                    onClick={handleSaveMessage}
-                    disabled={processing}
-                    className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 flex justify-center items-center gap-2"
-                >
-                    <Save size={18} /> {selectedStudent.parent_confirm ? 'Lưu Thay Đổi' : 'Xác Nhận Thay PH & Lưu'}
-                </button>
-             </div>
+            <button
+              onClick={handleSaveMessage}
+              disabled={processing}
+              className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 flex justify-center items-center gap-2"
+            >
+              <Save size={18} /> {selectedStudent.parent_confirm ? 'Lưu Thay Đổi' : 'Xác Nhận Thay PH & Lưu'}
+            </button>
           </div>
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { Student, TASKS_LIST } from './types';
 import { TEACHER_PASSWORD, TEACHER_USERNAME, SUPABASE_URL } from './constants';
 import FallingBlossoms from './components/FallingBlossoms';
 import TeacherDashboard from './components/TeacherDashboard';
+import Leaderboard from './components/Leaderboard';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -88,6 +89,9 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ show: boolean; msg: string }>({ show: false, msg: '' });
+
+  // Leaderboard State
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Feature State
   const [parentMessage, setParentMessage] = useState('');
@@ -366,6 +370,9 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Leaderboard Modal */}
+      {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+
       {/* Header */}
       <header className="bg-red-600 text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]">
         <div className="flex justify-between items-start max-w-2xl mx-auto">
@@ -379,6 +386,7 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setShowLeaderboard(true)} className="p-2 bg-yellow-400 rounded-full text-red-800 hover:bg-yellow-300 transition shadow-inner animate-pulse"><Trophy size={16} /></button>
             <button onClick={() => setShowPassModal(true)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner"><Key size={16} /></button>
             <button onClick={handleLogout} className="text-xs bg-red-800 px-3 py-1 rounded-full text-white hover:bg-red-900 transition flex items-center shadow-inner">Thoát</button>
           </div>
