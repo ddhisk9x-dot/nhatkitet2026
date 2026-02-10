@@ -44,12 +44,20 @@ const StarRating = ({ value, onChange, disabled }: { value: number, onChange: (v
           <div key={starIndex} className="relative cursor-pointer w-10 h-10 sm:w-8 sm:h-8 md:w-10 md:h-10 transition-transform active:scale-90">
             <div
               className="absolute left-0 top-0 w-1/2 h-full z-10"
-              onClick={() => !disabled && onChange(starIndex - 0.5)}
+              onClick={() => {
+                if (disabled) return;
+                const newValue = starIndex - 0.5;
+                onChange(value === newValue ? 0 : newValue);
+              }}
               onMouseEnter={() => !disabled && setHoverValue(starIndex - 0.5)}
             ></div>
             <div
               className="absolute right-0 top-0 w-1/2 h-full z-10"
-              onClick={() => !disabled && onChange(starIndex)}
+              onClick={() => {
+                if (disabled) return;
+                const newValue = starIndex;
+                onChange(value === newValue ? 0 : newValue);
+              }}
               onMouseEnter={() => !disabled && setHoverValue(starIndex)}
             ></div>
             <Star
