@@ -70,6 +70,35 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     closeEditModal();
   };
 
+  const handleResetAll = async () => {
+    if (!selectedStudent) return;
+    if (!window.confirm(`⚠️ Nguy hiểm: Bạn có chắc muốn xóa hết sao và hủy xác nhận của em ${selectedStudent.full_name}?`)) return;
+
+    setProcessing(true);
+    try {
+      // 1. Reset all tasks to 0
+      const taskPromises = TASKS_LIST.map(t => updateTask(selectedStudent.student_code, t.id, 0));
+
+      // 2. Reset Parent Confirm
+      const confirmPromise = updateParentConfirm(selectedStudent.student_code, false, '');
+
+      await Promise.all([...taskPromises, confirmPromise]);
+
+      // 3. Update Local State (Optimistic)
+      const updatedStudent = { ...selectedStudent, parent_confirm: false, parent_message: '' };
+      TASKS_LIST.forEach(t => (updatedStudent as any)[t.id] = 0);
+
+      setSelectedStudent(updatedStudent);
+      alert("Đã reset hoàn toàn thành công!");
+      fetchData(); // Refresh main list
+    } catch (err) {
+      console.error(err);
+      alert("Có lỗi xảy ra khi reset.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const filteredStudents = students.filter(s =>
     s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.student_code.includes(searchTerm)
