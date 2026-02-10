@@ -3,11 +3,11 @@
 // ==========================================
 
 // 1. Vào Settings -> API trong Supabase Dashboard
-// 2. Copy "Project URL" và dán vào bên dưới (giữa hai dấu nháy đơn)
-export const SUPABASE_URL = 'DÁN_URL_CỦA_BẠN_VÀO_ĐÂY';
+// 2. Copy "Project URL" và dán vào file .env (hoặc biến môi trường trên Vercel)
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 
-// 3. Copy "anon public" key và dán vào bên dưới
-export const SUPABASE_KEY = 'DÁN_KEY_CỦA_BẠN_VÀO_ĐÂY';
+// 3. Copy "anon public" key và dán vào file .env (hoặc biến môi trường trên Vercel)
+export const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY || '';
 
 // 4. TÀI KHOẢN QUẢN TRỊ (GVCN)
 export const TEACHER_USERNAME = 'hieudd';
