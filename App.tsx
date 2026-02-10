@@ -95,6 +95,7 @@ const App: React.FC = () => {
 
   // Feature State
   const [parentMessage, setParentMessage] = useState('');
+  const [honestyPledge, setHonestyPledge] = useState(false); // Lời hứa trung thực
 
   // Change Password Modal State
   const [showPassModal, setShowPassModal] = useState(false);
@@ -480,7 +481,7 @@ const App: React.FC = () => {
 
         {/* Parent Section */}
         <div className="mt-8 bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl border-2 border-red-100">
-          <h3 className="text-xl font-bold text-red-600 flex items-center gap-2 mb-4"><Award className="text-yellow-500" /> Phụ Huynh Xác Nhận</h3>
+          <h3 className="text-xl font-bold text-red-600 flex items-center gap-2 mb-4"><Award className="text-yellow-500" /> Góc Cảm Xúc & Xác Nhận</h3>
           {currentStudent.parent_confirm ? (
             <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-200 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-red-500"></div>
@@ -490,17 +491,48 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-gray-600 leading-relaxed font-medium">
-                Sau khi con hoàn thành các nhiệm vụ, ba mẹ hãy kiểm tra cho con và bấm xác nhận nhé!
-                <br /><span className="text-xs text-red-500 font-normal italic">*Mỗi mốc bố mẹ cần xác nhận để mở tiếp.</span>
-              </p>
-              <textarea className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base" rows={3} placeholder="Nội dung xác nhận của bố mẹ...." value={parentMessage} onChange={(e) => setParentMessage(e.target.value)}></textarea>
-              <div className="flex items-center gap-3 mb-2 bg-gray-50 p-2 rounded cursor-pointer" onClick={() => !parentMessage && document.querySelector('textarea')?.focus()}>
-                <input type="checkbox" id="confirm" className="w-5 h-5 text-red-600 rounded focus:ring-red-500" checked={parentMessage.length > 0} readOnly />
-                <label htmlFor="confirm" className="text-sm font-bold text-gray-700 pointer-events-none">Xác nhận con đã làm việc tốt</label>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm text-blue-800 flex gap-2">
+                <Info size={16} className="shrink-0 mt-0.5" />
+                <p>
+                  "Sự trung thực quý giá hơn mọi điểm số." <br />
+                  Hãy cùng Ba Mẹ xem lại các nhiệm vụ và ghi lại những kỷ niệm vui vẻ nhé!
+                </p>
               </div>
-              <button onClick={handleParentSubmit} disabled={loading || !parentMessage} className="w-full bg-red-600 text-white font-bold py-4 rounded-lg shadow hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex justify-center items-center gap-2 transition-transform active:scale-95 text-lg">
-                {loading ? 'Đang gửi...' : <><Save size={20} /> Gửi xác nhận</>}
+
+              <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-lg border border-yellow-200 cursor-pointer hover:bg-yellow-100 transition" onClick={() => setHonestyPledge(!honestyPledge)}>
+                <div className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${honestyPledge ? 'bg-red-500 border-red-500 text-white' : 'bg-white border-gray-300'}`}>
+                  {honestyPledge && <CheckCircle size={16} />}
+                </div>
+                <div>
+                  <p className="font-bold text-gray-800">Lời Hứa Danh Dự</p>
+                  <p className="text-xs text-gray-600">Em xin hứa những điều em tự đánh giá ở trên là hoàn toàn trung thực.</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1 uppercase">Nhật Ký / Lời Nhắn (Của Bố Mẹ)</label>
+                <textarea className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-base" rows={3} placeholder="VD: Hôm nay con quét nhà rất sạch, mẹ rất vui..." value={parentMessage} onChange={(e) => setParentMessage(e.target.value)}></textarea>
+              </div>
+
+              <button
+                onClick={() => {
+                  if (!honestyPledge) {
+                    alert("Em hãy đánh dấu vào 'Lời Hứa Danh Dự' trước nhé!");
+                    return;
+                  }
+                  if (!parentMessage.trim()) {
+                    alert("Hãy để lại một lời nhắn hoặc kỷ niệm nhỏ nhé!");
+                    document.querySelector('textarea')?.focus();
+                    return;
+                  }
+                  if (window.confirm("Xác nhận: Em đã hoàn thành nhiệm vụ và trung thực với những gì đã báo cáo?")) {
+                    handleParentSubmit();
+                  }
+                }}
+                disabled={loading}
+                className={`w-full text-white font-bold py-4 rounded-lg shadow flex justify-center items-center gap-2 transition-transform active:scale-95 text-lg ${honestyPledge && parentMessage ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-300 cursor-not-allowed'}`}
+              >
+                {loading ? 'Đang gửi...' : <><Save size={20} /> Xác Nhận Hoàn Thành</>}
               </button>
             </div>
           )}
