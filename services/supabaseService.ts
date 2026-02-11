@@ -263,3 +263,37 @@ export const getAllEvidence = async () => {
 
   return { data, error };
 };
+
+export const deleteEvidence = async (id: number, imageUrl: string) => {
+  if (!supabase) return { error: 'No Supabase config' };
+
+  try {
+    // 1. Delete from DB
+    const { error: dbError } = await supabase
+      .from('task_evidence')
+      .delete()
+      .eq('id', id);
+
+    if (dbError) throw dbError;
+
+    // 2. Delete from Storage
+    // Extract path from URL: .../evidence/studentCode/fileName
+    // This is tricky if URL format varies. But usually: 
+    // publicUrl: .../storage/v1/object/public/evidence/PATH
+    const path = imageUrl.split('/evidence/')[1];
+    if (path) {
+      // Decode URI component in case of spaces/special chars
+      const decodedPath = decodeURIComponent(path);
+      const { error: storageError } = await supabase.storage
+        .from('evidence')
+        .remove([decodedPath]);
+
+      if (storageError) console.error('Storage delete error:', storageError);
+    }
+
+    return { error: null };
+  } catch (err) {
+    console.error('Delete failed:', err);
+    return { error: err };
+  }
+};

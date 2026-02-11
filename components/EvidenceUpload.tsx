@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Upload, Image as ImageIcon, X, Loader2, Trash2 } from 'lucide-react';
-import { getEvidence, uploadEvidence } from '../services/supabaseService';
+import { getEvidence, uploadEvidence, deleteEvidence } from '../services/supabaseService';
 import { TaskEvidence } from '../types';
+import { compressImage } from '../utils/imageCompression';
 
 interface EvidenceUploadProps {
     studentCode: string;
@@ -29,8 +30,19 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, da
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
 
-        const file = e.target.files[0];
-        // Check file size (max 5MB)
+        let file = e.target.files[0];
+
+        // 1. Compress Image
+        try {
+            if (file.type.startsWith('image/')) {
+                file = await compressImage(file, 1920, 0.8);
+            }
+        } catch (err) {
+            console.error("Compression error:", err);
+            // Continue with original file if compression fails
+        }
+
+        // Check file size (max 5MB after compression)
         if (file.size > 5 * 1024 * 1024) {
             alert("File quá lớn! Vui lòng chọn ảnh dưới 5MB.");
             return;
@@ -44,6 +56,16 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, da
             alert("Lỗi upload: " + (error.message || error));
         } else {
             // Refresh list
+            fetchEvidence();
+        }
+    };
+
+    const handleDelete = async (id: number, url: string) => {
+        if (!window.confirm("Bạn có chắc muốn xóa ảnh này?")) return;
+        const { error } = await deleteEvidence(id, url);
+        if (error) {
+            alert("Lỗi xóa ảnh: " + error);
+        } else {
             fetchEvidence();
         }
     };
@@ -113,10 +135,20 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, da
                                         href={e.image_url}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="absolute bottom-2 right-2 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
+                                        className="absolute bottom-2 right-2 bg-white/90 text-gray-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition shadow-sm"
                                     >
                                         Xem full
                                     </a>
+                                    <button
+                                        onClick={(evt) => {
+                                            evt.stopPropagation();
+                                            handleDelete(e.id, e.image_url);
+                                        }}
+                                        className="absolute top-2 right-2 bg-red-500 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-red-600"
+                                        title="Xóa ảnh"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
                                 </div>
                             ))}
                         </div>

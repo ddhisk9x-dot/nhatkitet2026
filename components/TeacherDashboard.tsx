@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2 } from 'lucide-react';
 
 interface TeacherDashboardProps {
   onLogout: () => void;
@@ -61,6 +61,17 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     const { data } = await getEvidence(student.student_code);
     if (data) setStudentEvidence(data);
     else setStudentEvidence([]);
+  };
+
+  const handleDeleteEvidence = async (id: number, url: string) => {
+    if (!window.confirm("Bạn có chắc muốn xóa ảnh minh chứng này?")) return;
+    const { error } = await deleteEvidence(id, url);
+    if (error) {
+      alert("Lỗi xóa ảnh: " + error);
+    } else {
+      // Refresh evidence list local state
+      setStudentEvidence(prev => prev.filter(e => e.id !== id));
+    }
   };
 
   const closeEditModal = () => {
@@ -474,11 +485,20 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
                     <span className="text-xl">{task.icon}</span>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium">{task.title}</span>
-                      <div className="flex gap-1 mt-1">
+                      <div className="flex gap-1 mt-1 flex-wrap">
                         {studentEvidence.filter(e => e.task_id === task.id).map((e, idx) => (
-                          <a key={idx} href={e.image_url} target="_blank" rel="noreferrer" className="block w-6 h-6 rounded overflow-hidden border hover:scale-150 transition-transform origin-bottom-left relative z-10" title="Xem ảnh minh chứng">
-                            <img src={e.image_url} className="w-full h-full object-cover" alt="evidence" />
-                          </a>
+                          <div key={idx} className="relative group w-8 h-8">
+                            <a href={e.image_url} target="_blank" rel="noreferrer" className="block w-full h-full rounded overflow-hidden border hover:scale-150 transition-transform origin-bottom-left relative z-10" title="Xem ảnh minh chứng">
+                              <img src={e.image_url} className="w-full h-full object-cover" alt="evidence" />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteEvidence(e.id, e.image_url)}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition z-20 scale-75 hover:scale-100 shadow-sm"
+                              title="Xóa ảnh"
+                            >
+                              <XCircle size={12} />
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
