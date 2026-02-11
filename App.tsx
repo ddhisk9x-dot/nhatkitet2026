@@ -11,6 +11,7 @@ import TetCountdown from './components/TetCountdown';
 import CauDoi from './components/CauDoi';
 import BadgesDisplay from './components/BadgesDisplay';
 import CayMaiLop from './components/CayMaiLop';
+import LiXiGame from './components/LiXiGame';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -116,6 +117,7 @@ const App: React.FC = () => {
     return new Date().getHours() >= 18 || new Date().getHours() < 6;
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showLiXi, setShowLiXi] = useState(false);
 
   // Change Password Modal State
   const [showPassModal, setShowPassModal] = useState(false);
@@ -430,6 +432,7 @@ const App: React.FC = () => {
 
       {/* Leaderboard Modal */}
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+      {showLiXi && currentStudent && <LiXiGame studentName={currentStudent.full_name} onClose={() => setShowLiXi(false)} />}
 
       {/* Header */}
       <header className={`${darkMode ? 'bg-red-900' : 'bg-red-600'} text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]`}>
@@ -585,6 +588,12 @@ const App: React.FC = () => {
               <div className="text-green-600 font-bold text-lg mb-2 flex items-center justify-center gap-2"><CheckCircle size={20} /> Đã xác nhận</div>
               <p className="italic text-gray-700 font-hand text-lg leading-relaxed">"{currentStudent.parent_message}"</p>
               <div className="mt-3 text-xs text-gray-400 flex justify-center items-center gap-1"><Star size={10} fill="currentColor" /> Gia đình hạnh phúc <Star size={10} fill="currentColor" /></div>
+              <button
+                onClick={() => setShowLiXi(true)}
+                className="mt-4 bg-red-600 text-yellow-300 font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-red-700 transition transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 mx-auto text-lg animate-pulse"
+              >
+                🧧 Bốc Lì Xì May Mắn!
+              </button>
             </div>
           ) : (
             <div className="space-y-4">

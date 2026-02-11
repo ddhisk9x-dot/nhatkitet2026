@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel } from '../services/supabaseService';
 import { Student, TASKS_LIST } from '../types';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter } from 'lucide-react';
 
 interface TeacherDashboardProps {
   onLogout: () => void;
@@ -111,11 +111,89 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   };
 
   const [sortOrder, setSortOrder] = useState<'default' | 'stars'>('default');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'done' | 'confirmed'>('all');
+  const [notification, setNotification] = useState('');
+  const [showStats, setShowStats] = useState(true);
 
-  const filteredStudents = students.filter(s =>
-    s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.student_code.includes(searchTerm)
-  ).sort((a, b) => {
+  // Real students only (exclude test/teacher accounts)
+  const realStudents = students.filter(s =>
+    s.class_name && s.class_name !== 'GVCN' && !s.class_name.includes('TEST')
+  );
+
+  // Stats calculations
+  const stats = (() => {
+    const maxScore = TASKS_LIST.length * 5;
+    let totalScoreAll = 0;
+    let completed100 = 0;
+    let confirmed = 0;
+    let notStarted = 0;
+    let inProgress = 0;
+
+    realStudents.forEach(s => {
+      let score = 0;
+      TASKS_LIST.forEach(t => score += (s[t.id] as number));
+      totalScoreAll += score;
+      const pct = (score / maxScore) * 100;
+      if (pct >= 100) completed100++;
+      if (s.parent_confirm) confirmed++;
+      if (score === 0) notStarted++;
+      else if (pct < 100) inProgress++;
+    });
+
+    return {
+      total: realStudents.length,
+      completed100,
+      confirmed,
+      notStarted,
+      inProgress,
+      avgScore: realStudents.length > 0 ? (totalScoreAll / realStudents.length).toFixed(1) : '0',
+      maxScore,
+    };
+  })();
+
+  // CSV Export
+  const exportCSV = () => {
+    const maxScore = TASKS_LIST.length * 5;
+    const header = ['STT', 'Mã HS', 'Họ Tên', ...TASKS_LIST.map(t => t.title), 'Tổng Sao', '% Hoàn Thành', 'PH Xác Nhận', 'Lời nhắn PH'];
+    const rows = realStudents
+      .sort((a, b) => a.student_code.localeCompare(b.student_code))
+      .map((s, i) => {
+        const scores = TASKS_LIST.map(t => s[t.id] as number);
+        const total = scores.reduce((a, b) => a + b, 0);
+        return [
+          i + 1, s.student_code, s.full_name, ...scores, total,
+          Math.round((total / maxScore) * 100) + '%',
+          s.parent_confirm ? 'Có' : 'Chưa',
+          s.parent_message || ''
+        ];
+      });
+
+    const BOM = '\uFEFF';
+    const csv = BOM + [header, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `NhatKyTet_8B03_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const filteredStudents = realStudents.filter(s => {
+    const matchSearch = s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || s.student_code.includes(searchTerm);
+    if (!matchSearch) return false;
+
+    if (statusFilter === 'all') return true;
+    let score = 0;
+    TASKS_LIST.forEach(t => score += (s[t.id] as number));
+    const pct = (score / (TASKS_LIST.length * 5)) * 100;
+
+    if (statusFilter === 'not_started') return score === 0;
+    if (statusFilter === 'in_progress') return score > 0 && pct < 100;
+    if (statusFilter === 'done') return pct >= 100;
+    if (statusFilter === 'confirmed') return s.parent_confirm;
+    return true;
+  }).sort((a, b) => {
     if (sortOrder === 'default') {
       return a.student_code.localeCompare(b.student_code);
     } else {
@@ -147,24 +225,80 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
       <header className="bg-red-700 text-white p-4 shadow-lg sticky top-0 z-30 flex justify-between items-center">
         <div>
           <h1 className="text-xl font-bold font-hand">Trang Quản Lý GVCN</h1>
-          <p className="text-xs text-red-100">Lớp 8B03 - Sĩ số: {students.length}</p>
+          <p className="text-xs text-red-100">Lớp 8B03 - Sĩ số: {stats.total}</p>
         </div>
-        <button onClick={onLogout} className="bg-red-800 p-2 rounded hover:bg-red-900 flex items-center gap-1 text-sm">
-          <LogOut size={16} /> Thoát
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exportCSV} className="bg-green-600 p-2 rounded hover:bg-green-700 flex items-center gap-1 text-sm" title="Xuất Excel">
+            <Download size={16} /> CSV
+          </button>
+          <button onClick={onLogout} className="bg-red-800 p-2 rounded hover:bg-red-900 flex items-center gap-1 text-sm">
+            <LogOut size={16} /> Thoát
+          </button>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-4">
+
+        {/* STATS OVERVIEW */}
+        <div className="bg-white rounded-xl shadow-lg p-4 mb-4 border border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-800 flex items-center gap-2"><BarChart3 size={18} className="text-red-600" /> Tổng Quan</h2>
+            <button onClick={() => setShowStats(!showStats)} className="text-xs text-gray-400 hover:text-gray-600">{showStats ? 'Ẩn' : 'Hiện'}</button>
+          </div>
+          {showStats && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-blue-50 rounded-lg p-3 text-center border border-blue-100">
+                <div className="text-2xl font-bold text-blue-700">{stats.total}</div>
+                <div className="text-[10px] text-blue-500 font-bold">Tổng HS</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3 text-center border border-green-100">
+                <div className="text-2xl font-bold text-green-700">{stats.confirmed}</div>
+                <div className="text-[10px] text-green-500 font-bold">PH Xác Nhận</div>
+              </div>
+              <div className="bg-orange-50 rounded-lg p-3 text-center border border-orange-100">
+                <div className="text-2xl font-bold text-orange-700">{stats.notStarted}</div>
+                <div className="text-[10px] text-orange-500 font-bold">Chưa Làm</div>
+              </div>
+              <div className="bg-yellow-50 rounded-lg p-3 text-center border border-yellow-100">
+                <div className="text-2xl font-bold text-yellow-700">{stats.avgScore}</div>
+                <div className="text-[10px] text-yellow-600 font-bold">TB Sao / {stats.maxScore}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Search */}
-        <div className="bg-white p-4 rounded-xl shadow mb-6 flex gap-2 sticky top-20 z-20">
-          <Search className="text-gray-400" />
+        <div className="bg-white p-3 rounded-xl shadow mb-4 flex gap-2 sticky top-20 z-20">
+          <Search className="text-gray-400" size={20} />
           <input
             type="text"
             placeholder="Tìm tên hoặc mã số HS..."
-            className="flex-1 outline-none text-gray-700"
+            className="flex-1 outline-none text-gray-700 text-sm"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
+        </div>
+
+        {/* STATUS FILTER TABS */}
+        <div className="flex gap-2 mb-3 overflow-x-auto pb-1 text-xs">
+          {[
+            { key: 'all', label: `Tất cả (${stats.total})`, color: 'gray' },
+            { key: 'not_started', label: `Chưa làm (${stats.notStarted})`, color: 'orange' },
+            { key: 'in_progress', label: `Đang làm (${stats.inProgress})`, color: 'blue' },
+            { key: 'done', label: `Hoàn thành (${stats.completed100})`, color: 'green' },
+            { key: 'confirmed', label: `PH duyệt (${stats.confirmed})`, color: 'emerald' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setStatusFilter(tab.key as any)}
+              className={`px-3 py-1.5 rounded-full font-bold border whitespace-nowrap transition ${statusFilter === tab.key
+                  ? `bg-${tab.color}-600 text-white border-${tab.color}-600`
+                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Sort Controls */}
