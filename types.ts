@@ -1,3 +1,15 @@
+export interface AvatarConfig {
+  gender?: 'male' | 'female';
+  skin?: string;
+  hair?: string;
+  outfit?: string;
+  hat?: string;
+  hand?: string;
+  accessory?: string;
+  vehicle?: string;
+  owned_items?: string[];
+}
+
 export interface Student {
   student_code: string;
   full_name: string;
@@ -16,17 +28,7 @@ export interface Student {
   parent_confirm: boolean;
   parent_message?: string | null;
   last_updated: string;
-  avatar_config?: {
-    gender?: 'male' | 'female';
-    skin?: string;
-    hair?: string;
-    outfit?: string;
-    hat?: string;
-    hand?: string;
-    accessory?: string;
-    vehicle?: string;
-    owned_items?: string[];
-  };
+  avatar_config?: AvatarConfig;
   bonus_stars?: number; // Sao thưởng từ GVCN hoặc nhiệm vụ ẩn
   completed_hidden_tasks?: string[]; // Danh sách ID các nhiệm vụ ẩn đã làm
 }
