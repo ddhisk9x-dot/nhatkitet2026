@@ -245,3 +245,21 @@ export const getEvidence = async (studentCode: string, taskId?: string) => {
   const { data, error } = await query;
   return { data, error };
 };
+
+export const getAllEvidence = async () => {
+  if (!supabase) return { data: [], error: 'No Supabase config' };
+
+  // Join with students table to get names? 
+  // Supabase join syntax: select('*, students(full_name)')
+  // But we need foreign key relation. 
+  // Since we rely on manual student_code matching and no formal FK, we might just fetch all evidence and map names on client side if needed, 
+  // OR just show student_code if we don't have FK.
+  // Actually, we can fetch all students and look up names.
+
+  const { data, error } = await supabase
+    .from('task_evidence')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  return { data, error };
+};

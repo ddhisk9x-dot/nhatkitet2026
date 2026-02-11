@@ -10,9 +10,10 @@ import Leaderboard from './components/Leaderboard';
 import TetCountdown from './components/TetCountdown';
 import CauDoi from './components/CauDoi';
 import BadgesDisplay from './components/BadgesDisplay';
-import CayMaiLop from './components/CayMaiLop';
+import CayDaoLop from './components/CayDaoLop';
 import LiXiGame from './components/LiXiGame';
 import EvidenceUpload from './components/EvidenceUpload';
+import ClassTimeline from './components/ClassTimeline';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -119,6 +120,7 @@ const App: React.FC = () => {
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showLiXi, setShowLiXi] = useState(false);
+  const [showTimeline, setShowTimeline] = useState(false);
 
   // Change Password Modal State
   const [showPassModal, setShowPassModal] = useState(false);
@@ -434,6 +436,7 @@ const App: React.FC = () => {
       {/* Leaderboard Modal */}
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
       {showLiXi && currentStudent && <LiXiGame studentName={currentStudent.full_name} onClose={() => setShowLiXi(false)} />}
+      {showTimeline && <ClassTimeline onBack={() => setShowTimeline(false)} darkMode={darkMode} />}
 
       {/* Header */}
       <header className={`${darkMode ? 'bg-red-900' : 'bg-red-600'} text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]`}>
@@ -558,8 +561,16 @@ const App: React.FC = () => {
           </p>
         </div>
 
-        {/* Cây Mai Lớp */}
-        <CayMaiLop darkMode={darkMode} />
+        {/* Cây Đào Lớp */}
+        <CayDaoLop darkMode={darkMode} />
+
+        {/* Timeline Button */}
+        <button
+          onClick={() => setShowTimeline(true)}
+          className={`w-full mt-2 py-3 rounded-xl shadow-sm border font-bold flex items-center justify-center gap-2 transition transform hover:scale-[1.02] ${darkMode ? 'bg-gray-800 border-gray-700 text-pink-400 hover:bg-gray-700' : 'bg-white border-pink-200 text-pink-600 hover:bg-pink-50'}`}
+        >
+          📸 Xem Nhật Ký Ảnh Lớp 8B03
+        </button>
 
         {/* Tasks Grid */}
         <div className="grid grid-cols-1 gap-4">
