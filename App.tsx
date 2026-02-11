@@ -569,8 +569,8 @@ const App: React.FC = () => {
                 <span className="text-4xl sm:text-3xl">{task.icon}</span>
                 <div className="flex-1">
                   <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>{task.title}</h3>
-                  <p className="text-sm sm:text-xs text-gray-700 mt-1 font-medium leading-relaxed">{task.description}</p>
-                  <p className="text-xs sm:text-[10px] text-gray-500 mt-2 italic border-t pt-1 border-dashed border-gray-200">🎯 {task.criteria}</p>
+                  <p className={`text-sm sm:text-xs mt-1 font-medium leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{task.description}</p>
+                  <p className={`text-xs sm:text-[10px] mt-2 italic border-t pt-1 border-dashed ${darkMode ? 'text-gray-400 border-gray-600' : 'text-gray-500 border-gray-200'}`}>🎯 {task.criteria}</p>
                 </div>
               </div>
               <div className="border-t pt-3 flex flex-col items-center justify-center gap-2">
@@ -587,7 +587,7 @@ const App: React.FC = () => {
 
         {/* Parent Section */}
         <div className={`mt-8 backdrop-blur rounded-2xl p-6 shadow-xl border-2 ${darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-red-100'}`}>
-          <h3 className="text-xl font-bold text-red-600 flex items-center gap-2 mb-4"><Award className="text-yellow-500" /> Góc Cảm Xúc & Xác Nhận</h3>
+          <h3 className={`text-xl font-bold flex items-center gap-2 mb-4 ${darkMode ? 'text-red-400' : 'text-red-600'}`}><Award className="text-yellow-500" /> Góc Cảm Xúc & Xác Nhận</h3>
           {currentStudent.parent_confirm ? (
             <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-200 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 via-yellow-500 to-red-500"></div>
