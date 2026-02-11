@@ -12,6 +12,7 @@ import CauDoi from './components/CauDoi';
 import BadgesDisplay from './components/BadgesDisplay';
 import CayMaiLop from './components/CayMaiLop';
 import LiXiGame from './components/LiXiGame';
+import EvidenceUpload from './components/EvidenceUpload';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -572,8 +573,13 @@ const App: React.FC = () => {
                   <p className="text-xs sm:text-[10px] text-gray-500 mt-2 italic border-t pt-1 border-dashed border-gray-200">🎯 {task.criteria}</p>
                 </div>
               </div>
-              <div className="border-t pt-3 flex justify-center">
+              <div className="border-t pt-3 flex flex-col items-center justify-center gap-2">
                 <StarRating value={currentStudent[task.id] as number} onChange={(val) => handleTaskRating(task.id, val)} disabled={currentStudent.parent_confirm} />
+                <EvidenceUpload
+                  studentCode={currentStudent.student_code}
+                  taskId={task.id}
+                  darkMode={darkMode}
+                />
               </div>
             </div>
           ))}

@@ -26,6 +26,14 @@ export interface TaskDef {
   criteria: string; // Tiêu chí đánh giá 5 sao
 }
 
+export interface TaskEvidence {
+  id: number;
+  student_code: string;
+  task_id: string;
+  image_url: string;
+  created_at: string;
+}
+
 export const TASKS_LIST: TaskDef[] = [
   {
     id: 'task_1',

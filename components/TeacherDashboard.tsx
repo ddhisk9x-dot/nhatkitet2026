@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel } from '../services/supabaseService';
-import { Student, TASKS_LIST } from '../types';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter } from 'lucide-react';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence } from '../services/supabaseService';
+import { Student, TASKS_LIST, TaskEvidence } from '../types';
+import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon } from 'lucide-react';
 
 interface TeacherDashboardProps {
   onLogout: () => void;
@@ -12,6 +12,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentEvidence, setStudentEvidence] = useState<TaskEvidence[]>([]);
 
   // Edit states
   const [editMessage, setEditMessage] = useState('');
@@ -53,9 +54,13 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     }
   };
 
-  const openEditModal = (student: Student) => {
+  const openEditModal = async (student: Student) => {
     setSelectedStudent(student);
     setEditMessage(student.parent_message || '');
+    // Fetch evidence
+    const { data } = await getEvidence(student.student_code);
+    if (data) setStudentEvidence(data);
+    else setStudentEvidence([]);
   };
 
   const closeEditModal = () => {
@@ -292,8 +297,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
               key={tab.key}
               onClick={() => setStatusFilter(tab.key as any)}
               className={`px-3 py-1.5 rounded-full font-bold border whitespace-nowrap transition ${statusFilter === tab.key
-                  ? `bg-${tab.color}-600 text-white border-${tab.color}-600`
-                  : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+                ? `bg-${tab.color}-600 text-white border-${tab.color}-600`
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
                 }`}
             >
               {tab.label}
@@ -464,10 +469,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
             <h3 className="font-bold text-gray-700 mb-2">Chấm điểm chi tiết</h3>
             <div className="grid grid-cols-1 gap-2 mb-6 max-h-60 overflow-y-auto pr-2">
               {TASKS_LIST.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 group">
                   <div className="flex items-center gap-2 flex-1">
-                    <span>{task.icon}</span>
-                    <span className="text-sm font-medium">{task.title}</span>
+                    <span className="text-xl">{task.icon}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{task.title}</span>
+                      <div className="flex gap-1 mt-1">
+                        {studentEvidence.filter(e => e.task_id === task.id).map((e, idx) => (
+                          <a key={idx} href={e.image_url} target="_blank" rel="noreferrer" className="block w-6 h-6 rounded overflow-hidden border hover:scale-150 transition-transform origin-bottom-left relative z-10" title="Xem ảnh minh chứng">
+                            <img src={e.image_url} className="w-full h-full object-cover" alt="evidence" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <input
                     type="number"

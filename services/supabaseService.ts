@@ -186,3 +186,62 @@ export const unsubscribeChannel = (channel: any) => {
     supabase.removeChannel(channel);
   }
 };
+
+// ==========================================
+// EVIDENCE SERVICES (1.1)
+// ==========================================
+
+export const uploadEvidence = async (studentCode: string, taskId: string, file: File) => {
+  if (!supabase) return { data: null, error: 'No Supabase config' };
+
+  try {
+    // 1. Upload to Storage
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${studentCode}_${taskId}_${Date.now()}.${fileExt}`;
+    const filePath = `${studentCode}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('evidence')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    // 2. Get Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('evidence')
+      .getPublicUrl(filePath);
+
+    // 3. Save to DB
+    const { data, error: dbError } = await supabase
+      .from('task_evidence')
+      .insert([
+        { student_code: studentCode, task_id: taskId, image_url: publicUrl }
+      ])
+      .select()
+      .single();
+
+    if (dbError) throw dbError;
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('Upload failed:', err);
+    return { data: null, error: err };
+  }
+};
+
+export const getEvidence = async (studentCode: string, taskId?: string) => {
+  if (!supabase) return { data: [], error: 'No Supabase config' };
+
+  let query = supabase
+    .from('task_evidence')
+    .select('*')
+    .eq('student_code', studentCode)
+    .order('created_at', { ascending: false });
+
+  if (taskId) {
+    query = query.eq('task_id', taskId);
+  }
+
+  const { data, error } = await query;
+  return { data, error };
+};
