@@ -156,6 +156,22 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
           />
         </div>
 
+        {/* Sort Controls */}
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSortOrder('default')}
+            className={`px-4 py-2 rounded-full text-sm font-bold border transition ${sortOrder === 'default' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-600 border-gray-200'}`}
+          >
+            A-Z Mặc định
+          </button>
+          <button
+            onClick={() => setSortOrder('stars')}
+            className={`px-4 py-2 rounded-full text-sm font-bold border transition flex items-center gap-1 ${sortOrder === 'stars' ? 'bg-yellow-400 text-red-800 border-yellow-400' : 'bg-white text-gray-600 border-gray-200'}`}
+          >
+            <Star size={14} fill={sortOrder === 'stars' ? "currentColor" : "none"} /> Xếp hạng Sao
+          </button>
+        </div>
+
         {loading ? (
           <div className="text-center py-10 text-gray-500">Đang tải danh sách...</div>
         ) : (
