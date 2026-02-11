@@ -8,9 +8,10 @@ interface EvidenceUploadProps {
     studentCode: string;
     taskId: string;
     darkMode?: boolean;
+    disabled?: boolean;
 }
 
-const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, darkMode }) => {
+const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, darkMode, disabled }) => {
     const [evidences, setEvidences] = useState<TaskEvidence[]>([]);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -96,7 +97,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, da
                     </div>
                 )}
 
-                <label className={`cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition ${uploading ? 'bg-gray-100 text-gray-400' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>
+                <label className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 transition ${uploading || disabled ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer'}`}>
                     {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
                     {evidences.length > 0 ? 'Thêm ảnh' : 'Up ảnh'}
                     <input
@@ -104,7 +105,7 @@ const EvidenceUpload: React.FC<EvidenceUploadProps> = ({ studentCode, taskId, da
                         accept="image/*"
                         className="hidden"
                         onChange={handleFileChange}
-                        disabled={uploading}
+                        disabled={uploading || disabled}
                     />
                 </label>
             </div>

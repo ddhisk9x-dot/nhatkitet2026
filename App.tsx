@@ -295,6 +295,15 @@ const App: React.FC = () => {
 
   const handleTaskRating = async (taskKey: keyof Student, newValue: number) => {
     if (!currentStudent) return;
+
+    // Check lock
+    const taskDef = TASKS_LIST.find(t => t.id === taskKey);
+    const today = new Date().toISOString().split('T')[0];
+    if (taskDef?.unlockDate && taskDef.unlockDate > today) {
+      alert(`Nhiệm vụ này sẽ mở vào: ${taskDef.unlockLabel}`);
+      return;
+    }
+
     playStarSound();
     const updatedStudent = { ...currentStudent, [taskKey]: newValue };
     setCurrentStudent(updatedStudent);
@@ -659,26 +668,41 @@ const App: React.FC = () => {
 
         {/* Tasks Grid */}
         <div className="grid grid-cols-1 gap-4">
-          {TASKS_LIST.map((task) => (
-            <div key={task.id} className={`p-4 rounded-xl shadow-md border-l-4 transition-all duration-300 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${(currentStudent[task.id] as number) > 0 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
-              <div className="flex gap-3 mb-3">
-                <span className="text-4xl sm:text-3xl">{task.icon}</span>
-                <div className="flex-1">
-                  <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>{task.title}</h3>
-                  <p className={`text-sm sm:text-xs mt-1 font-medium leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{task.description}</p>
-                  <p className={`text-xs sm:text-[10px] mt-2 italic border-t pt-1 border-dashed ${darkMode ? 'text-gray-400 border-gray-600' : 'text-gray-500 border-gray-200'}`}>🎯 {task.criteria}</p>
+          {TASKS_LIST.map((task) => {
+            const today = new Date().toISOString().split('T')[0];
+            const isLocked = task.unlockDate && task.unlockDate > today;
+
+            return (
+              <div key={task.id} className={`p-4 rounded-xl shadow-md border-l-4 transition-all duration-300 relative ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${(currentStudent[task.id] as number) > 0 ? 'border-l-green-500' : 'border-l-gray-300'} ${isLocked ? 'opacity-70 grayscale-[0.5]' : ''}`}>
+                {isLocked && (
+                  <div className="absolute inset-0 z-20 bg-gray-100/50 backdrop-blur-[1px] rounded-xl flex items-center justify-center">
+                    <div className="bg-white/90 p-3 rounded-lg shadow-lg border border-red-200 flex flex-col items-center">
+                      <Lock className="text-red-500 mb-1" size={24} />
+                      <span className="text-red-800 font-bold text-sm uppercase">{task.unlockLabel}</span>
+                      <span className="text-xs text-gray-500 font-mono mt-1">{task.unlockDate?.split('-').reverse().join('/')}</span>
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-3 mb-3">
+                  <span className="text-4xl sm:text-3xl">{task.icon}</span>
+                  <div className="flex-1">
+                    <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>{task.title}</h3>
+                    <p className={`text-sm sm:text-xs mt-1 font-medium leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{task.description}</p>
+                    <p className={`text-xs sm:text-[10px] mt-2 italic border-t pt-1 border-dashed ${darkMode ? 'text-gray-400 border-gray-600' : 'text-gray-500 border-gray-200'}`}>🎯 {task.criteria}</p>
+                  </div>
+                </div>
+                <div className="border-t pt-3 flex flex-col items-center justify-center gap-2">
+                  <StarRating value={currentStudent[task.id] as number} onChange={(val) => handleTaskRating(task.id, val)} disabled={currentStudent.parent_confirm || !!isLocked} />
+                  <EvidenceUpload
+                    studentCode={currentStudent.student_code}
+                    taskId={task.id}
+                    darkMode={darkMode}
+                    disabled={!!isLocked}
+                  />
                 </div>
               </div>
-              <div className="border-t pt-3 flex flex-col items-center justify-center gap-2">
-                <StarRating value={currentStudent[task.id] as number} onChange={(val) => handleTaskRating(task.id, val)} disabled={currentStudent.parent_confirm} />
-                <EvidenceUpload
-                  studentCode={currentStudent.student_code}
-                  taskId={task.id}
-                  darkMode={darkMode}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Parent Section */}

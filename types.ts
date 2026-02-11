@@ -39,6 +39,8 @@ export interface TaskDef {
   icon: string;
   description: string;
   criteria: string; // Tiêu chí đánh giá 5 sao
+  unlockDate?: string; // Ngày mở khóa (YYYY-MM-DD)
+  unlockLabel?: string; // Nhãn hiển thị khi khóa (VD: "Mở vào Mùng 1")
 }
 
 export interface TaskEvidence {
@@ -62,7 +64,9 @@ export const TASKS_LIST: TaskDef[] = [
     title: 'Văn Hóa Ứng Xử',
     icon: '🙏',
     description: 'Chào hỏi lễ phép, chúc Tết ý nghĩa (không văn mẫu) và nhận lì xì bằng hai tay.',
-    criteria: '5 sao: Lời chúc chân thành, thái độ kính trọng, không mở lì xì trước mặt khách.'
+    criteria: '5 sao: Lời chúc chân thành, thái độ kính trọng, không mở lì xì trước mặt khách.',
+    unlockDate: '2026-02-17', // Mùng 1 Tết
+    unlockLabel: 'Mở vào Mùng 1 Tết'
   },
   {
     id: 'task_3',
@@ -111,13 +115,17 @@ export const TASKS_LIST: TaskDef[] = [
     title: 'Khai Bút Đầu Xuân',
     icon: '✍️',
     description: 'Viết ra 3 mục tiêu lớn (học tập, rèn luyện) muốn đạt được trong năm mới.',
-    criteria: '5 sao: Mục tiêu cụ thể, rõ ràng, viết nắn nót vào sổ tay/giấy đẹp.'
+    criteria: '5 sao: Mục tiêu cụ thể, rõ ràng, viết nắn nót vào sổ tay/giấy đẹp.',
+    unlockDate: '2026-02-17', // Mùng 1 Tết
+    unlockLabel: 'Mở sau Giao Thừa'
   },
   {
     id: 'task_10',
     title: 'Sẵn Sàng Trở Lại',
     icon: '🎒',
     description: 'Soạn sách vở, đồng phục đầy đủ vào tối mùng 5 Tết để đi học.',
-    criteria: '5 sao: Chuẩn bị xong hết trước 8h tối mùng 5, tâm thế hào hứng.'
+    criteria: '5 sao: Chuẩn bị xong hết trước 8h tối mùng 5, tâm thế hào hứng.',
+    unlockDate: '2026-02-21', // Mùng 5 Tết
+    unlockLabel: 'Mở vào Mùng 5 Tết'
   },
 ];
