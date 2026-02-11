@@ -17,8 +17,8 @@ let MOCK_DB = [...MOCK_STUDENTS_INIT];
 // Check config
 const isConfigured = SUPABASE_URL && !SUPABASE_URL.includes('DÁN_URL_CỦA_BẠN');
 
-const supabase = isConfigured 
-  ? createClient(SUPABASE_URL, SUPABASE_KEY) 
+const supabase = isConfigured
+  ? createClient(SUPABASE_URL, SUPABASE_KEY)
   : null;
 
 // ==========================================
@@ -34,12 +34,12 @@ export const getStudent = async (code: string): Promise<{ data: Student | null; 
     if (mockUser) return { data: { ...mockUser }, error: null };
     return { data: null, error: 'User not found in Mock DB' };
   }
-  
+
   // --- REAL MODE ---
   const { data, error } = await supabase
     .from('students')
     .select('*')
-    .eq('student_code', cleanCode) 
+    .eq('student_code', cleanCode)
     .single();
 
   return { data, error };
@@ -50,7 +50,7 @@ export const getAllStudents = async (): Promise<{ data: Student[] | null; error:
   if (!supabase) {
     return { data: [...MOCK_DB], error: null };
   }
-  
+
   // --- REAL MODE ---
   const { data, error } = await supabase
     .from('students')
@@ -75,12 +75,12 @@ export const updateTask = async (code: string, taskKey: string, value: number): 
   // --- REAL MODE ---
   const { data, error } = await supabase
     .from('students')
-    .update({ 
+    .update({
       [taskKey]: value,
       last_updated: new Date().toISOString()
     })
     .eq('student_code', code);
-    
+
   return { data, error };
 };
 
@@ -89,11 +89,11 @@ export const updateParentConfirm = async (code: string, confirmed: boolean, mess
   if (!supabase) {
     const index = MOCK_DB.findIndex(s => s.student_code === code);
     if (index !== -1) {
-      MOCK_DB[index] = { 
-        ...MOCK_DB[index], 
-        parent_confirm: confirmed, 
+      MOCK_DB[index] = {
+        ...MOCK_DB[index],
+        parent_confirm: confirmed,
         parent_message: message,
-        last_updated: new Date().toISOString() 
+        last_updated: new Date().toISOString()
       };
       return { data: MOCK_DB[index], error: null };
     }
@@ -103,13 +103,13 @@ export const updateParentConfirm = async (code: string, confirmed: boolean, mess
   // --- REAL MODE ---
   const { data, error } = await supabase
     .from('students')
-    .update({ 
+    .update({
       parent_confirm: confirmed,
       parent_message: message,
       last_updated: new Date().toISOString()
     })
     .eq('student_code', code);
-    
+
   return { data, error };
 };
 
@@ -127,34 +127,62 @@ export const changePassword = async (code: string, newPass: string): Promise<any
   // --- REAL MODE ---
   const { data, error } = await supabase
     .from('students')
-    .update({ 
+    .update({
       password: newPass,
       last_updated: new Date().toISOString()
     })
     .eq('student_code', code);
-    
+
   return { data, error };
 };
 
 export const resetStudentPassword = async (code: string): Promise<any> => {
-    // --- MOCK MODE ---
-    if (!supabase) {
-      const index = MOCK_DB.findIndex(s => s.student_code === code);
-      if (index !== -1) {
-        MOCK_DB[index] = { ...MOCK_DB[index], password: code, last_updated: new Date().toISOString() };
-        return { data: MOCK_DB[index], error: null };
-      }
-      return { error: 'Not found' };
+  // --- MOCK MODE ---
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === code);
+    if (index !== -1) {
+      MOCK_DB[index] = { ...MOCK_DB[index], password: code, last_updated: new Date().toISOString() };
+      return { data: MOCK_DB[index], error: null };
     }
-  
-    // --- REAL MODE ---
-    const { data, error } = await supabase
-      .from('students')
-      .update({ 
-        password: code,
-        last_updated: new Date().toISOString()
-      })
-      .eq('student_code', code);
-      
-    return { data, error };
-  };
+    return { error: 'Not found' };
+  }
+
+  // --- REAL MODE ---
+  const { data, error } = await supabase
+    .from('students')
+    .update({
+      password: code,
+      last_updated: new Date().toISOString()
+    })
+    .eq('student_code', code);
+
+  return { data, error };
+};
+
+// ==========================================
+// REALTIME SUBSCRIPTION (4.1)
+// ==========================================
+export const subscribeToStudents = (onUpdate: (student: Student) => void) => {
+  if (!supabase) return null; // No realtime in mock mode
+
+  const channel = supabase
+    .channel('students-realtime')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'students' },
+      (payload: any) => {
+        if (payload.new) {
+          onUpdate(payload.new as Student);
+        }
+      }
+    )
+    .subscribe();
+
+  return channel;
+};
+
+export const unsubscribeChannel = (channel: any) => {
+  if (supabase && channel) {
+    supabase.removeChannel(channel);
+  }
+};

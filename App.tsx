@@ -10,6 +10,7 @@ import Leaderboard from './components/Leaderboard';
 import TetCountdown from './components/TetCountdown';
 import CauDoi from './components/CauDoi';
 import BadgesDisplay from './components/BadgesDisplay';
+import CayMaiLop from './components/CayMaiLop';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -552,6 +553,9 @@ const App: React.FC = () => {
             <span className="text-yellow-600 font-bold whitespace-nowrap ml-2">1-2 sao</span> = Cần cố gắng.
           </p>
         </div>
+
+        {/* Cây Mai Lớp */}
+        <CayMaiLop darkMode={darkMode} />
 
         {/* Tasks Grid */}
         <div className="grid grid-cols-1 gap-4">

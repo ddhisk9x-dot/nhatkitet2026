@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel } from '../services/supabaseService';
 import { Student, TASKS_LIST } from '../types';
 import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock } from 'lucide-react';
 
@@ -19,6 +19,17 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
   useEffect(() => {
     fetchData();
+
+    // Realtime subscription
+    const channel = subscribeToStudents((updatedStudent) => {
+      setStudents(prev => prev.map(s =>
+        s.student_code === updatedStudent.student_code ? updatedStudent : s
+      ));
+    });
+
+    return () => {
+      if (channel) unsubscribeChannel(channel);
+    };
   }, []);
 
   const fetchData = async () => {
