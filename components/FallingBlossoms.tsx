@@ -1,52 +1,66 @@
 import React, { useEffect, useState } from 'react';
 
+interface Particle {
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+  type: 'dao' | 'mai' | 'lixi' | 'star';
+  size: number;
+}
+
+const EMOJIS = {
+  dao: '🌸',
+  mai: '🌼',
+  lixi: '🧧',
+  star: '✨',
+};
+
 const FallingBlossoms: React.FC = () => {
-  const [blossoms, setBlossoms] = useState<Array<{ id: number; left: number; delay: number; duration: number }>>([]);
+  const [particles, setParticles] = useState<Particle[]>([]);
 
   useEffect(() => {
-    // Generate static blossom data only once on mount to avoid re-renders
-    const items = Array.from({ length: 20 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 5,
-      duration: 5 + Math.random() * 5
-    }));
-    setBlossoms(items);
+    const items: Particle[] = Array.from({ length: 30 }).map((_, i) => {
+      const types: Particle['type'][] = ['dao', 'dao', 'mai', 'mai', 'lixi', 'star'];
+      return {
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 8,
+        duration: 6 + Math.random() * 8,
+        type: types[Math.floor(Math.random() * types.length)],
+        size: 14 + Math.random() * 14,
+      };
+    });
+    setParticles(items);
   }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-      {blossoms.map((b) => (
+      {particles.map((p) => (
         <div
-          key={b.id}
-          className="absolute top-[-10%] text-pink-300 opacity-60 text-2xl animate-fall"
+          key={p.id}
+          className="absolute top-[-10%] opacity-50"
           style={{
-            left: `${b.left}%`,
-            animation: `fall ${b.duration}s linear infinite`,
-            animationDelay: `${b.delay}s`,
+            left: `${p.left}%`,
+            fontSize: `${p.size}px`,
+            animation: `fall ${p.duration}s linear infinite, sway ${3 + Math.random() * 2}s ease-in-out infinite`,
+            animationDelay: `${p.delay}s`,
           }}
         >
-          🌸
+          {EMOJIS[p.type]}
         </div>
       ))}
-      {blossoms.map((b) => (
-        <div
-          key={`yellow-${b.id}`}
-          className="absolute top-[-10%] text-yellow-400 opacity-60 text-xl animate-fall"
-          style={{
-            left: `${(b.left + 50) % 100}%`,
-            animation: `fall ${b.duration + 2}s linear infinite`,
-            animationDelay: `${b.delay + 1}s`,
-          }}
-        >
-          🌼
-        </div>
-      ))}
+
       <style>{`
         @keyframes fall {
           0% { transform: translateY(-10vh) rotate(0deg); opacity: 0; }
-          10% { opacity: 0.8; }
+          10% { opacity: 0.7; }
+          90% { opacity: 0.5; }
           100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+        @keyframes sway {
+          0%, 100% { margin-left: 0px; }
+          50% { margin-left: 30px; }
         }
       `}</style>
     </div>

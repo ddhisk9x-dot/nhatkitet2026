@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight } from 'lucide-react';
+import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight, Moon, Sun, Volume2, VolumeX } from 'lucide-react';
 import { getStudent, updateTask, updateParentConfirm, changePassword } from './services/supabaseService';
 import { Student, TASKS_LIST } from './types';
 import { TEACHER_PASSWORD, TEACHER_USERNAME, SUPABASE_URL } from './constants';
 import FallingBlossoms from './components/FallingBlossoms';
 import TeacherDashboard from './components/TeacherDashboard';
 import Leaderboard from './components/Leaderboard';
+import TetCountdown from './components/TetCountdown';
+import CauDoi from './components/CauDoi';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -105,6 +107,14 @@ const App: React.FC = () => {
   const [parentMessage, setParentMessage] = useState('');
   const [honestyPledge, setHonestyPledge] = useState(false); // Lời hứa trung thực
 
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) return saved === 'true';
+    return new Date().getHours() >= 18 || new Date().getHours() < 6;
+  });
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
   // Change Password Modal State
   const [showPassModal, setShowPassModal] = useState(false);
   const [passForm, setPassForm] = useState({ current: '', new: '', confirm: '' });
@@ -120,6 +130,33 @@ const App: React.FC = () => {
       setStudentCode(savedCode);
     }
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', String(darkMode));
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
+
+  // Sound effect helper
+  const playStarSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) { /* ignore audio errors */ }
+  };
 
   const showToast = (msg: string) => {
     setToast({ show: true, msg });
@@ -203,6 +240,7 @@ const App: React.FC = () => {
 
   const handleTaskRating = async (taskKey: keyof Student, newValue: number) => {
     if (!currentStudent) return;
+    playStarSound();
     const updatedStudent = { ...currentStudent, [taskKey]: newValue };
     setCurrentStudent(updatedStudent);
     let total = 0;
@@ -299,34 +337,43 @@ const App: React.FC = () => {
   // --- RENDER LOGIN ---
   if (!currentStudent) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-to-b from-red-600 to-red-800">
+      <div className={`min-h-screen flex items-center justify-center p-4 relative overflow-hidden ${darkMode ? 'bg-gradient-to-b from-red-900 to-gray-900' : 'bg-gradient-to-b from-red-600 to-red-800'}`}>
         <FallingBlossoms />
+        <CauDoi />
         {isMockMode && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/20 backdrop-blur rounded-full px-4 py-1 text-white text-xs font-bold border border-white/30 flex items-center gap-2">
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-white/20 backdrop-blur rounded-full px-4 py-1 text-white text-xs font-bold border border-white/30 flex items-center gap-2 z-20">
             <Database size={12} /> CHẾ ĐỘ DEMO
           </div>
         )}
-        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative z-10 border-4 border-yellow-400 animate-fade-in-up">
-          <div className="flex flex-col items-center mb-6 gap-2">
+        {/* Dark Mode Toggle */}
+        <button onClick={() => setDarkMode(!darkMode)} className="absolute top-4 right-4 z-20 p-2 bg-white/20 backdrop-blur rounded-full text-white hover:bg-white/30 transition">
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+        <div className={`rounded-2xl shadow-2xl p-6 sm:p-8 w-full max-w-md relative z-10 border-4 border-yellow-400 animate-fade-in-up ${darkMode ? 'bg-gray-900/90 backdrop-blur' : 'bg-white'}`}>
+          <div className="flex flex-col items-center mb-4 gap-2">
             <SchoolLogo />
             <div className="text-center">
-              <h1 className="text-3xl font-hand font-bold text-red-600 mb-1">Nhật Ký Tết 2026</h1>
-              <p className="text-gray-600 font-sans font-bold text-lg">{isTeacherMode ? 'Đăng Nhập GVCN' : 'Lớp 8B03'}</p>
+              <h1 className={`text-3xl font-hand font-bold mb-1 ${darkMode ? 'text-yellow-400' : 'text-red-600'}`}>Nhật Ký Tết 2026</h1>
+              <p className={`font-sans font-bold text-lg ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>{isTeacherMode ? 'Đăng Nhập GVCN' : 'Lớp 8B03'}</p>
             </div>
+          </div>
+          {/* Đếm ngược Tết */}
+          <div className="mb-4">
+            <TetCountdown />
           </div>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">{isTeacherMode ? 'Tài khoản GVCN' : 'Mã Số Học Sinh'}</label>
+              <label className={`block text-xs font-bold mb-1 uppercase ${darkMode ? 'text-gray-400' : 'text-gray-700'}`}>{isTeacherMode ? 'Tài khoản GVCN' : 'Mã Số Học Sinh'}</label>
               <div className="relative">
                 <input type="text" value={studentCode} onChange={(e) => setStudentCode(isTeacherMode ? e.target.value : e.target.value.toUpperCase())}
-                  placeholder={isTeacherMode ? 'Tên đăng nhập' : 'Nhập mã số học sinh'} className="w-full pl-4 pr-10 py-3 border-2 border-red-100 rounded-xl focus:outline-none focus:border-red-500 text-lg font-bold tracking-widest" />
+                  placeholder={isTeacherMode ? 'Tên đăng nhập' : 'Nhập mã số học sinh'} className={`w-full pl-4 pr-10 py-3 border-2 rounded-xl focus:outline-none focus:border-red-500 text-lg font-bold tracking-widest ${darkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' : 'border-red-100'}`} />
                 <User className="absolute right-3 top-3.5 text-gray-400" size={20} />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1 uppercase">Mật khẩu</label>
+              <label className={`block text-xs font-bold mb-1 uppercase ${darkMode ? 'text-gray-400' : 'text-gray-700'}`}>Mật khẩu</label>
               <div className="relative">
-                <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Nhập mật khẩu" className="w-full pl-4 pr-10 py-3 border-2 border-red-100 rounded-xl focus:outline-none focus:border-red-500 text-lg" onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
+                <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="Nhập mật khẩu" className={`w-full pl-4 pr-10 py-3 border-2 rounded-xl focus:outline-none focus:border-red-500 text-lg ${darkMode ? 'bg-gray-800 border-gray-700 text-white placeholder-gray-500' : 'border-red-100'}`} onKeyDown={(e) => e.key === 'Enter' && handleLogin()} />
                 <Lock className="absolute right-3 top-3.5 text-gray-400" size={20} />
               </div>
             </div>
@@ -337,7 +384,7 @@ const App: React.FC = () => {
           </div>
           <div className="mt-6 text-center text-xs">
             {!isTeacherMode ? <button onClick={() => { setIsTeacherMode(true); setError(''); setLoginPassword(''); setStudentCode(''); }} className="text-red-600 font-bold hover:underline flex items-center justify-center gap-1 w-full"><ShieldCheck size={14} /> Dành cho GVCN</button>
-              : <button onClick={() => { setIsTeacherMode(false); setError(''); setLoginPassword(''); setStudentCode(''); }} className="text-blue-600 font-bold hover:underline">← Quay lại Đăng nhập Học sinh</button>}
+              : <button onClick={() => { setIsTeacherMode(false); setError(''); setLoginPassword(''); setStudentCode(''); }} className={`font-bold hover:underline ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>← Quay lại Đăng nhập Học sinh</button>}
           </div>
         </div>
       </div>
@@ -357,7 +404,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-tetCream relative pb-24">
+    <div className={`min-h-screen relative pb-24 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-tetCream'}`}>
       <FallingBlossoms />
       {isMockMode && <div className="bg-yellow-400 text-red-900 text-center text-[10px] py-1 font-bold sticky top-0 z-50">⚠️ Chế độ Demo</div>}
       {toast.show && <div className="fixed top-12 left-1/2 transform -translate-x-1/2 z-50 bg-green-600 text-white px-6 py-2 rounded-full shadow-xl animate-fade-in-down flex items-center gap-2 whitespace-nowrap"><CheckCircle size={18} /> {toast.msg}</div>}
@@ -383,7 +430,7 @@ const App: React.FC = () => {
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
 
       {/* Header */}
-      <header className="bg-red-600 text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]">
+      <header className={`${darkMode ? 'bg-red-900' : 'bg-red-600'} text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]`}>
         <div className="flex justify-between items-start max-w-2xl mx-auto">
           <div className="flex items-center gap-3">
             <SchoolLogo />
@@ -394,15 +441,22 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 flex-wrap justify-end">
             <button onClick={() => setShowLeaderboard(true)} className="p-2 bg-yellow-400 rounded-full text-red-800 hover:bg-yellow-300 transition shadow-inner animate-pulse"><Trophy size={16} /></button>
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner">{darkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
+            <button onClick={() => setSoundEnabled(!soundEnabled)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner">{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
             <button onClick={() => setShowPassModal(true)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner"><Key size={16} /></button>
             <button onClick={handleLogout} className="text-xs bg-red-800 px-3 py-1 rounded-full text-white hover:bg-red-900 transition flex items-center shadow-inner">Thoát</button>
           </div>
         </div>
 
+        {/* Đếm Ngược Tết */}
+        <div className="max-w-2xl mx-auto mt-3 px-1">
+          <TetCountdown />
+        </div>
+
         {/* Progress Bar */}
-        <div className="max-w-2xl mx-auto mt-4 px-1">
+        <div className="max-w-2xl mx-auto mt-3 px-1">
           <div className="flex justify-between text-xs text-red-100 mb-1 font-bold">
             <span>Điểm tích lũy: {totalScore}/{maxScore}</span>
             <span>{Math.round(percent)}%</span>
@@ -418,7 +472,7 @@ const App: React.FC = () => {
       <main className="max-w-2xl mx-auto p-4 space-y-4 relative z-10 -mt-6">
 
         {/* REWARD LIST BOX */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className={`rounded-xl shadow-lg border overflow-hidden ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
           <div className="bg-gradient-to-r from-red-50 to-orange-50 p-3 border-b border-red-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Gift className="text-red-500" size={20} />
@@ -459,7 +513,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Guide */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-yellow-200 text-sm sm:text-xs text-gray-600 flex gap-2 items-start leading-relaxed">
+        <div className={`rounded-xl p-4 shadow-sm border text-sm sm:text-xs flex gap-2 items-start leading-relaxed ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-yellow-200 text-gray-600'}`}>
           <HelpCircle size={16} className="text-yellow-500 shrink-0 mt-0.5" />
           <p>
             <b>Hướng dẫn:</b> Hãy tự đánh giá nhiệm vụ. <br className="block sm:hidden" />
@@ -471,11 +525,11 @@ const App: React.FC = () => {
         {/* Tasks Grid */}
         <div className="grid grid-cols-1 gap-4">
           {TASKS_LIST.map((task) => (
-            <div key={task.id} className={`p-4 rounded-xl shadow-md border-l-4 transition-all duration-300 bg-white border-gray-200 ${(currentStudent[task.id] as number) > 0 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
+            <div key={task.id} className={`p-4 rounded-xl shadow-md border-l-4 transition-all duration-300 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} ${(currentStudent[task.id] as number) > 0 ? 'border-l-green-500' : 'border-l-gray-300'}`}>
               <div className="flex gap-3 mb-3">
                 <span className="text-4xl sm:text-3xl">{task.icon}</span>
                 <div className="flex-1">
-                  <h3 className="font-bold text-lg font-hand text-red-700">{task.title}</h3>
+                  <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>{task.title}</h3>
                   <p className="text-sm sm:text-xs text-gray-700 mt-1 font-medium leading-relaxed">{task.description}</p>
                   <p className="text-xs sm:text-[10px] text-gray-500 mt-2 italic border-t pt-1 border-dashed border-gray-200">🎯 {task.criteria}</p>
                 </div>
@@ -488,7 +542,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Parent Section */}
-        <div className="mt-8 bg-white/90 backdrop-blur rounded-2xl p-6 shadow-xl border-2 border-red-100">
+        <div className={`mt-8 backdrop-blur rounded-2xl p-6 shadow-xl border-2 ${darkMode ? 'bg-gray-800/90 border-gray-700' : 'bg-white/90 border-red-100'}`}>
           <h3 className="text-xl font-bold text-red-600 flex items-center gap-2 mb-4"><Award className="text-yellow-500" /> Góc Cảm Xúc & Xác Nhận</h3>
           {currentStudent.parent_confirm ? (
             <div className="bg-yellow-50 p-4 rounded-lg text-center border border-yellow-200 relative overflow-hidden">
