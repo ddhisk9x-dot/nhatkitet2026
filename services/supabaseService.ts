@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { SUPABASE_URL, SUPABASE_KEY } from '../constants';
-import { Student } from '../types';
+import { Student, AvatarConfig } from '../types';
 
 // ==========================================
 // MOCK DATA (DỮ LIỆU GIẢ LẬP ĐỂ TEST NGAY)
@@ -424,6 +424,15 @@ export const completeHiddenTask = async (studentCode: string, taskId: string, re
 };
 
 export const resetStudentData = async (studentCode: string) => {
+  const DEFAULT_RESET_CONFIG: AvatarConfig = {
+    gender: 'male',
+    outfit: 'outfit_none',
+    hat: 'hat_none',
+    accessory: 'acc_none',
+    vehicle: 'veh_none',
+    owned_items: []
+  };
+
   // --- MOCK MODE ---
   if (!supabase) {
     const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
@@ -438,7 +447,7 @@ export const resetStudentData = async (studentCode: string) => {
         completed_hidden_tasks: [],
         parent_confirm: false,
         parent_message: null,
-        avatar_config: null, // Reset avatar to default
+        avatar_config: DEFAULT_RESET_CONFIG, // Explicit reset
         last_updated: new Date().toISOString()
       };
       return { error: null };
@@ -456,7 +465,7 @@ export const resetStudentData = async (studentCode: string) => {
       completed_hidden_tasks: [],
       parent_confirm: false,
       parent_message: null,
-      avatar_config: null,
+      avatar_config: DEFAULT_RESET_CONFIG, // Explicit reset
       last_updated: new Date().toISOString()
     })
     .eq('student_code', studentCode);
