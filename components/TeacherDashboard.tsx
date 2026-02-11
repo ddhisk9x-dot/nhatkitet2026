@@ -99,10 +99,20 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     }
   };
 
+  const [sortOrder, setSortOrder] = useState<'default' | 'stars'>('default');
+
   const filteredStudents = students.filter(s =>
     s.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.student_code.includes(searchTerm)
-  );
+  ).sort((a, b) => {
+    if (sortOrder === 'default') {
+      return a.student_code.localeCompare(b.student_code);
+    } else {
+      const scoreA = TASKS_LIST.reduce((acc, t) => acc + (a[t.id] as number), 0);
+      const scoreB = TASKS_LIST.reduce((acc, t) => acc + (b[t.id] as number), 0);
+      return scoreB - scoreA; // Descending
+    }
+  });
 
   // Duplicate calculation logic here for display
   const calculateRewards = (totalStars: number) => {
@@ -159,6 +169,13 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
               return (
                 <div key={student.student_code} className={`bg-white p-4 rounded-xl shadow border-l-4 hover:shadow-lg transition relative ${isConfirmed ? 'border-l-green-500' : 'border-l-orange-500'}`}>
+                  {/* Rank Badge */}
+                  {sortOrder === 'stars' && (
+                    <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-yellow-400 text-red-800 font-bold flex items-center justify-center border-2 border-white shadow-md z-10">
+                      #{filteredStudents.indexOf(student) + 1}
+                    </div>
+                  )}
+
                   {/* Parent Confirm Status Badge */}
                   <div className="absolute top-2 right-2">
                     {isConfirmed ? (
