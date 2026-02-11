@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone } from 'lucide-react';
 
 interface TeacherDashboardProps {
   onLogout: () => void;
@@ -14,12 +14,30 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentEvidence, setStudentEvidence] = useState<TaskEvidence[]>([]);
 
+  // Broadcast State
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [isBroadcastActive, setIsBroadcastActive] = useState(false);
+
   // Edit states
   const [editMessage, setEditMessage] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  const [sortOrder, setSortOrder] = useState<'default' | 'stars'>('default');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'done' | 'confirmed'>('all');
+  const [notification, setNotification] = useState('');
+  const [showStats, setShowStats] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'students'>('overview'); // New state for tabs
+
+
   useEffect(() => {
     fetchData();
+    // Fetch current broadcast
+    getBroadcast().then(({ data }) => {
+      if (data) {
+        setBroadcastMsg(data.message);
+        setIsBroadcastActive(data.is_active);
+      }
+    });
 
     // Realtime subscription
     const channel = subscribeToStudents((updatedStudent) => {
@@ -125,11 +143,6 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
       setProcessing(false);
     }
   };
-
-  const [sortOrder, setSortOrder] = useState<'default' | 'stars'>('default');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'not_started' | 'in_progress' | 'done' | 'confirmed'>('all');
-  const [notification, setNotification] = useState('');
-  const [showStats, setShowStats] = useState(true);
 
   // Real students only (exclude test/teacher accounts)
   const realStudents = students.filter(s =>
@@ -254,6 +267,42 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
       </header>
 
       <main className="max-w-4xl mx-auto p-4">
+
+        {/* BROADCAST CONTROL */}
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-yellow-200 mb-6">
+          <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-3"><Megaphone className="text-red-500" /> Gửi Thông Báo (Banner chạy chữ)</h3>
+          <div className="flex gap-2 flex-col sm:flex-row">
+            <input
+              type="text"
+              value={broadcastMsg}
+              onChange={(e) => setBroadcastMsg(e.target.value)}
+              placeholder="Nhập nội dung thông báo..."
+              className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  const newState = !isBroadcastActive;
+                  setIsBroadcastActive(newState);
+                  await updateBroadcast(broadcastMsg, newState);
+                  alert(`Đã ${newState ? 'BẬT' : 'TẮT'} thông báo!`);
+                }}
+                className={`px-4 py-2 rounded-lg font-bold w-32 ${isBroadcastActive ? 'bg-green-100 text-green-700 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}
+              >
+                {isBroadcastActive ? 'Đang HIỆN' : 'Đang ẨN'}
+              </button>
+              <button
+                onClick={async () => {
+                  await updateBroadcast(broadcastMsg, isBroadcastActive);
+                  alert("Đã cập nhật nội dung!");
+                }}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2"
+              >
+                <Send size={18} /> Cập nhật
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* STATS OVERVIEW */}
         <div className="bg-white rounded-xl shadow-lg p-4 mb-4 border border-gray-100">

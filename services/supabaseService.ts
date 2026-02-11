@@ -297,3 +297,43 @@ export const deleteEvidence = async (id: number, imageUrl: string) => {
     return { error: err };
   }
 };
+
+// ==========================================
+// BROADCAST SERVICES
+// ==========================================
+export const getBroadcast = async () => {
+  if (!supabase) return { data: null, error: 'No config' };
+  const { data, error } = await supabase
+    .from('broadcasts')
+    .select('*')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  return { data, error };
+};
+
+export const updateBroadcast = async (message: string, isActive: boolean) => {
+  if (!supabase) return { error: 'No config' };
+
+  // We only use one row or create new ones? Let's just insert a new one for history, or update the latest.
+  // Simpler: Insert new row.
+  const { error } = await supabase
+    .from('broadcasts')
+    .insert([{ message, is_active: isActive }]);
+
+  // Optional: Set others to inactive? 
+  // Trigger or manual update? For simplicity, we just fetch the latest active one.
+
+  return { error };
+};
+
+export const subscribeToBroadcast = (onUpdate: (payload: any) => void) => {
+  if (!supabase) return null;
+  return supabase
+    .channel('broadcast-realtime')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
+      onUpdate(payload.new);
+    })
+    .subscribe();
+};

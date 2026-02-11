@@ -14,6 +14,7 @@ import CayDaoLop from './components/CayDaoLop';
 import LiXiGame from './components/LiXiGame';
 import EvidenceUpload from './components/EvidenceUpload';
 import ClassTimeline from './components/ClassTimeline';
+import BroadcastBanner from './components/BroadcastBanner';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -433,6 +434,8 @@ const App: React.FC = () => {
         </div>
       )}
 
+      {/* Broadcast Banner */}
+      <BroadcastBanner />
       {/* Leaderboard Modal */}
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
       {showLiXi && currentStudent && <LiXiGame studentName={currentStudent.full_name} onClose={() => setShowLiXi(false)} />}
