@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars, resetStudentData } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
 import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone } from 'lucide-react';
 
@@ -126,21 +126,27 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
 
     setProcessing(true);
     try {
-      // 1. Reset all tasks to 0
-      const taskPromises = TASKS_LIST.map(t => updateTask(selectedStudent.student_code, t.id, 0));
+      // Call centralized reset function
+      const { error } = await resetStudentData(selectedStudent.student_code);
+      if (error) throw error;
 
-      // 2. Reset Parent Confirm
-      const confirmPromise = updateParentConfirm(selectedStudent.student_code, false, '');
-
-      await Promise.all([...taskPromises, confirmPromise]);
-
-      // 3. Update Local State (Optimistic)
-      const updatedStudent = { ...selectedStudent, parent_confirm: false, parent_message: '' };
+      // Update Local State (Optimistic)
+      const updatedStudent = {
+        ...selectedStudent,
+        parent_confirm: false,
+        parent_message: '',
+        bonus_stars: 0,
+        avatar_config: null,
+        completed_hidden_tasks: []
+      };
       TASKS_LIST.forEach(t => (updatedStudent as any)[t.id] = 0);
 
       setSelectedStudent(updatedStudent);
-      alert("Đã reset hoàn toàn thành công!");
-      fetchData(); // Refresh main list
+
+      // Update main list
+      setStudents(prev => prev.map(s => s.student_code === selectedStudent.student_code ? updatedStudent : s));
+
+      alert("Đã reset hoàn toàn (kể cả trang phục & sao thưởng) thành công!");
     } catch (err) {
       console.error(err);
       alert("Có lỗi xảy ra khi reset.");

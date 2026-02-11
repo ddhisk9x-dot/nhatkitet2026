@@ -422,3 +422,44 @@ export const completeHiddenTask = async (studentCode: string, taskId: string, re
 
   return { error };
 };
+
+export const resetStudentData = async (studentCode: string) => {
+  // --- MOCK MODE ---
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      MOCK_DB[index] = {
+        ...MOCK_DB[index],
+        // Reset Tasks
+        task_1: 0, task_2: 0, task_3: 0, task_4: 0, task_5: 0,
+        task_6: 0, task_7: 0, task_8: 0, task_9: 0, task_10: 0,
+        // Reset Extras
+        bonus_stars: 0,
+        completed_hidden_tasks: [],
+        parent_confirm: false,
+        parent_message: null,
+        avatar_config: null, // Reset avatar to default
+        last_updated: new Date().toISOString()
+      };
+      return { error: null };
+    }
+    return { error: 'Not found' };
+  }
+
+  // --- REAL MODE ---
+  const { error } = await supabase
+    .from('students')
+    .update({
+      task_1: 0, task_2: 0, task_3: 0, task_4: 0, task_5: 0,
+      task_6: 0, task_7: 0, task_8: 0, task_9: 0, task_10: 0,
+      bonus_stars: 0,
+      completed_hidden_tasks: [],
+      parent_confirm: false,
+      parent_message: null,
+      avatar_config: null,
+      last_updated: new Date().toISOString()
+    })
+    .eq('student_code', studentCode);
+
+  return { error };
+};
