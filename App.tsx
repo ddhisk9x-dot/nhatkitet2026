@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight, Moon, Sun, Volume2, VolumeX } from 'lucide-react';
+import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight, Moon, Sun, Volume2, VolumeX, Share2 } from 'lucide-react';
 import { getStudent, updateTask, updateParentConfirm, changePassword } from './services/supabaseService';
 import { Student, TASKS_LIST } from './types';
 import { TEACHER_PASSWORD, TEACHER_USERNAME, SUPABASE_URL } from './constants';
@@ -9,6 +9,7 @@ import TeacherDashboard from './components/TeacherDashboard';
 import Leaderboard from './components/Leaderboard';
 import TetCountdown from './components/TetCountdown';
 import CauDoi from './components/CauDoi';
+import BadgesDisplay from './components/BadgesDisplay';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
 const SchoolLogo = () => (
@@ -510,6 +511,36 @@ const App: React.FC = () => {
               )
             })}
           </div>
+        </div>
+
+        {/* BADGES SECTION */}
+        <div className={`rounded-xl shadow-lg border overflow-hidden p-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎖️</span>
+              <span className={`font-bold ${darkMode ? 'text-yellow-400' : 'text-red-800'}`}>Huy Hiệu Thành Tích</span>
+            </div>
+            <button
+              onClick={() => {
+                const text = `🏅 ${currentStudent.full_name} - Nhật Ký Tết 2026\n⭐ ${totalScore}/${maxScore} sao (${Math.round(percent)}%)\n🏆 ${rank.title}\nLớp 8B03 - Trường Ngôi Sao Hoàng Mai`;
+                if (navigator.share) {
+                  navigator.share({ title: 'Nhật Ký Tết 2026', text });
+                } else {
+                  navigator.clipboard.writeText(text);
+                  showToast('Đã copy kết quả!');
+                }
+              }}
+              className="flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 transition"
+            >
+              <Share2 size={12} /> Chia sẻ
+            </button>
+          </div>
+          <BadgesDisplay
+            percent={percent}
+            confirmed={currentStudent.parent_confirm}
+            totalScore={totalScore}
+            tasks={TASKS_LIST.reduce((acc, t) => ({ ...acc, [t.id]: currentStudent[t.id] as number }), {} as Record<string, number>)}
+          />
         </div>
 
         {/* Guide */}
