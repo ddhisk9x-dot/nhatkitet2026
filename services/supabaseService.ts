@@ -456,7 +456,10 @@ export const resetStudentData = async (studentCode: string) => {
   }
 
   // --- REAL MODE ---
-  const { error } = await supabase
+  console.log('[resetStudentData] Resetting for:', studentCode);
+  console.log('[resetStudentData] With config:', DEFAULT_RESET_CONFIG);
+
+  const { data, error } = await supabase
     .from('students')
     .update({
       task_1: 0, task_2: 0, task_3: 0, task_4: 0, task_5: 0,
@@ -468,7 +471,14 @@ export const resetStudentData = async (studentCode: string) => {
       avatar_config: DEFAULT_RESET_CONFIG, // Explicit reset
       last_updated: new Date().toISOString()
     })
-    .eq('student_code', studentCode);
+    .eq('student_code', studentCode)
+    .select(); // Add select to return updated data
+
+  if (error) {
+    console.error('[resetStudentData] Error:', error);
+  } else {
+    console.log('[resetStudentData] Success. Updated data:', data);
+  }
 
   return { error };
 };
