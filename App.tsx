@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { User, LogIn, CheckCircle, Save, Award, Lock, Key, X, AlertCircle, ShieldCheck, Database, Info, Star, HelpCircle, Gift, Trophy, Coins, Unlock, ChevronRight, Moon, Sun, Volume2, VolumeX, Share2 } from 'lucide-react';
-import { getStudent, updateTask, updateParentConfirm, changePassword } from './services/supabaseService';
+import { getStudent, updateTask, updateParentConfirm, changePassword, completeHiddenTask } from './services/supabaseService';
 import { Student, TASKS_LIST } from './types';
 import { TEACHER_PASSWORD, TEACHER_USERNAME, SUPABASE_URL } from './constants';
 import FallingBlossoms from './components/FallingBlossoms';
@@ -15,10 +15,12 @@ import LiXiGame from './components/LiXiGame';
 import EvidenceUpload from './components/EvidenceUpload';
 import ClassTimeline from './components/ClassTimeline';
 import BroadcastBanner from './components/BroadcastBanner';
+import AvatarEditor from './components/AvatarEditor';
+import { Shirt } from 'lucide-react';
 
 // --- COMPONENT: LOGO NGÔI SAO HOÀNG MAI (SVG) ---
-const SchoolLogo = () => (
-  <svg viewBox="0 0 100 100" className="w-16 h-16 sm:w-20 sm:h-20 shadow-lg rounded-lg overflow-hidden shrink-0">
+const SchoolLogo = ({ onClick }: { onClick?: () => void }) => (
+  <svg onClick={onClick} viewBox="0 0 100 100" className="w-16 h-16 sm:w-20 sm:h-20 shadow-lg rounded-lg overflow-hidden shrink-0 cursor-pointer active:scale-95 transition-transform">
     <defs>
       <mask id="mask">
         <rect width="100" height="100" fill="white" />
@@ -122,15 +124,60 @@ const App: React.FC = () => {
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showLiXi, setShowLiXi] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [showAvatarEditor, setShowAvatarEditor] = useState(false);
 
   // Change Password Modal State
   const [showPassModal, setShowPassModal] = useState(false);
   const [passForm, setPassForm] = useState({ current: '', new: '', confirm: '' });
   const [passError, setPassError] = useState('');
-  const [passLoading, setPassLoading] = useState(false);
+  const [passLoading, setPassLoading] = useState(false); // Restore passLoading
+
+  // Hidden Task State
+  const [logoTaps, setLogoTaps] = useState(0);
 
   // Check Configuration
   const isMockMode = !SUPABASE_URL || SUPABASE_URL.includes('DÁN_URL_CỦA_BẠN');
+
+  // --- HIDDEN TASK HANDLERS ---
+  const handleHiddenTask = async (taskId: string, reward: number, msg: string) => {
+    if (!currentStudent) return;
+    if (currentStudent.completed_hidden_tasks?.includes(taskId)) return;
+
+    // Optimistic update
+    const updatedStudent = {
+      ...currentStudent,
+      bonus_stars: (currentStudent.bonus_stars || 0) + reward,
+      completed_hidden_tasks: [...(currentStudent.completed_hidden_tasks || []), taskId]
+    };
+    setCurrentStudent(updatedStudent);
+    showToast(`🎉 ${msg} (+${reward} sao)`);
+    playStarSound();
+    confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+
+    await completeHiddenTask(currentStudent.student_code, taskId, reward);
+  };
+
+  // Scroll to bottom detection
+  useEffect(() => {
+    const handleScroll = () => {
+      const bottom = Math.abs(document.documentElement.scrollHeight - window.innerHeight - window.scrollY) < 50;
+      if (bottom && currentStudent) {
+        handleHiddenTask('scroll_bottom', 1, 'Bạn đã khám phá tận đáy trang!');
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [currentStudent]); // Re-bind when student changes
+
+  // Logo Tap Handler
+  const handleLogoTap = () => {
+    const newTaps = logoTaps + 1;
+    setLogoTaps(newTaps);
+    if (newTaps === 5) {
+      handleHiddenTask('tap_logo_5', 2, 'Bạn đã tìm thấy bí mật Logo!');
+    }
+  };
+
 
   useEffect(() => {
     const savedCode = localStorage.getItem('student_code');
@@ -321,6 +368,8 @@ const App: React.FC = () => {
   const getStats = (student: Student) => {
     let totalScore = 0;
     TASKS_LIST.forEach(task => totalScore += (student[task.id] as number) || 0);
+    totalScore += (student.bonus_stars || 0); // Add bonus stars logic
+
     const maxScore = TASKS_LIST.length * 5;
     const percent = (totalScore / maxScore) * 100;
 
@@ -438,8 +487,32 @@ const App: React.FC = () => {
       <BroadcastBanner />
       {/* Leaderboard Modal */}
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
-      {showLiXi && currentStudent && <LiXiGame studentName={currentStudent.full_name} onClose={() => setShowLiXi(false)} />}
+      {showLiXi && currentStudent && (
+        <LiXiGame
+          studentName={currentStudent.full_name}
+          onClose={() => setShowLiXi(false)}
+          onOpen={() => {
+            const reward = Math.floor(Math.random() * 6) + 5; // 5-10 stars
+            handleHiddenTask('lixi_lucky', reward, 'Lì xì may mắn đầu năm!');
+          }}
+        />
+      )}
+
       {showTimeline && <ClassTimeline onBack={() => setShowTimeline(false)} darkMode={darkMode} />}
+      {showAvatarEditor && currentStudent && (
+        <AvatarEditor
+          student={currentStudent}
+          onClose={() => setShowAvatarEditor(false)}
+          onUpdate={async () => {
+            // Refresh student data
+            if (currentStudent) {
+              const { data } = await getStudent(currentStudent.student_code);
+              if (data) setCurrentStudent(data);
+            }
+          }}
+          totalScore={totalScore}
+        />
+      )}
 
       {/* Header */}
       <header className={`${darkMode ? 'bg-red-900' : 'bg-red-600'} text-yellow-300 p-3 sm:p-4 pb-8 shadow-lg sticky top-0 z-30 rounded-b-[2rem]`}>
@@ -454,7 +527,8 @@ const App: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-1.5 flex-wrap justify-end">
-            <button onClick={() => setShowLeaderboard(true)} className="p-2 bg-yellow-400 rounded-full text-red-800 hover:bg-yellow-300 transition shadow-inner animate-pulse"><Trophy size={16} /></button>
+            <button onClick={() => setShowAvatarEditor(true)} className="p-2 bg-pink-500 rounded-full text-white hover:bg-pink-600 transition shadow-inner flex items-center gap-1 animate-bounce duration-[2000ms]"><Shirt size={16} /></button>
+            <button onClick={() => setShowLeaderboard(true)} className="p-2 bg-yellow-400 rounded-full text-red-800 hover:bg-yellow-300 transition shadow-inner"><Trophy size={16} /></button>
             <button onClick={() => setDarkMode(!darkMode)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner">{darkMode ? <Sun size={16} /> : <Moon size={16} />}</button>
             <button onClick={() => setSoundEnabled(!soundEnabled)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner">{soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}</button>
             <button onClick={() => setShowPassModal(true)} className="p-2 bg-red-700 rounded-full text-white hover:bg-red-800 transition shadow-inner"><Key size={16} /></button>
@@ -535,10 +609,18 @@ const App: React.FC = () => {
               onClick={() => {
                 const text = `🏅 ${currentStudent.full_name} - Nhật Ký Tết 2026\n⭐ ${totalScore}/${maxScore} sao (${Math.round(percent)}%)\n🏆 ${rank.title}\nLớp 8B03 - Trường Ngôi Sao Hoàng Mai`;
                 if (navigator.share) {
-                  navigator.share({ title: 'Nhật Ký Tết 2026', text });
+                  navigator.share({ title: 'Nhật Ký Tết 2026', text })
+                    .then(() => {
+                      const reward = Math.floor(Math.random() * 5) + 1;
+                      handleHiddenTask('share_app', reward, 'Cảm ơn bạn đã chia sẻ!');
+                    })
+                    .catch(() => { });
                 } else {
                   navigator.clipboard.writeText(text);
                   showToast('Đã copy kết quả!');
+                  // Also award for copying if sharing is not supported
+                  const reward = Math.floor(Math.random() * 5) + 1;
+                  handleHiddenTask('share_app', reward, 'Cảm ơn bạn đã chia sẻ!');
                 }
               }}
               className="flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-600 px-3 py-1.5 rounded-full hover:bg-blue-100 transition"

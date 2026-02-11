@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
 import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone } from 'lucide-react';
 
@@ -27,6 +27,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   const [notification, setNotification] = useState('');
   const [showStats, setShowStats] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'students'>('overview'); // New state for tabs
+
+  // Bonus Star Modal
+  const [bonusModal, setBonusModal] = useState<{ isOpen: boolean, student: Student | null, amount: number, reason: string }>({
+    isOpen: false, student: null, amount: 1, reason: ''
+  });
 
 
   useEffect(() => {
@@ -142,6 +147,25 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleGiveBonus = async () => {
+    if (!bonusModal.student) return;
+    setProcessing(true);
+    await updateBonusStars(bonusModal.student.student_code, bonusModal.amount);
+
+    // Update local state optimistic
+    const updatedList = students.map(s => {
+      if (s.student_code === bonusModal.student?.student_code) {
+        return { ...s, bonus_stars: (s.bonus_stars || 0) + bonusModal.amount };
+      }
+      return s;
+    });
+    setStudents(updatedList);
+
+    setProcessing(false);
+    alert(`Đã thưởng ${bonusModal.amount} sao cho ${bonusModal.student.full_name}!`);
+    setBonusModal({ ...bonusModal, isOpen: false });
   };
 
   // Real students only (exclude test/teacher accounts)
@@ -449,6 +473,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
                       <Edit size={14} /> Chấm điểm
                     </button>
                     <button
+                      onClick={() => setBonusModal({ isOpen: true, student: student, amount: 1, reason: 'Thưởng nóng' })}
+                      className="bg-yellow-100 text-yellow-700 p-2 rounded hover:bg-yellow-200 text-xs flex flex-col items-center justify-center w-16"
+                      title="Thưởng sao"
+                    >
+                      <Star size={14} fill="currentColor" />
+                      <span className="scale-75">Thưởng</span>
+                    </button>
+                    <button
                       onClick={() => handleResetPassword(student)}
                       className="bg-gray-100 text-gray-600 p-2 rounded hover:bg-gray-200 text-xs flex flex-col items-center justify-center w-16"
                       title="Reset Mật khẩu về mặc định"
@@ -502,7 +534,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
             {/* Reward Detail in Modal */}
             {(() => {
               let totalScore = 0;
-              TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number));
+              TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number) || 0);
+              totalScore += (selectedStudent.bonus_stars || 0);
               const { civilPoints, money } = calculateRewards(totalScore);
               const isConfirmed = selectedStudent.parent_confirm;
 
@@ -580,6 +613,47 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
             >
               <Save size={18} /> {selectedStudent.parent_confirm ? 'Lưu Thay Đổi' : 'Xác Nhận Thay PH & Lưu'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* BONUS STAR MODAL */}
+      {bonusModal.isOpen && bonusModal.student && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+              <Star className="text-yellow-400 fill-yellow-400" /> Thưởng Sao
+            </h3>
+            <p className="mb-4">Học sinh: <b>{bonusModal.student.full_name}</b></p>
+
+            <div className="grid grid-cols-4 gap-2 mb-4">
+              {[1, 2, 5, 10].map(amt => (
+                <button
+                  key={amt}
+                  onClick={() => setBonusModal({ ...bonusModal, amount: amt })}
+                  className={`py-2 rounded font-bold border ${bonusModal.amount === amt ? 'bg-yellow-400 border-yellow-500 text-red-900' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                >
+                  +{amt}
+                </button>
+              ))}
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-bold text-gray-500">Số lượng tùy chỉnh:</label>
+              <input
+                type="number"
+                value={bonusModal.amount}
+                onChange={(e) => setBonusModal({ ...bonusModal, amount: Number(e.target.value) })}
+                className="w-full border p-2 rounded mt-1 font-bold text-center text-lg"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <button onClick={() => setBonusModal({ ...bonusModal, isOpen: false })} className="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold">Hủy</button>
+              <button onClick={handleGiveBonus} disabled={processing} className="flex-1 px-4 py-2 bg-yellow-400 text-red-800 rounded-lg hover:bg-yellow-300 font-bold border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 transition-all">
+                {processing ? 'Đang gửi...' : 'Xác Nhận'}
+              </button>
+            </div>
           </div>
         </div>
       )}

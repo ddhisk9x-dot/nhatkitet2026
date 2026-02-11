@@ -14,8 +14,21 @@ export interface Student {
   task_9: number;
   task_10: number;
   parent_confirm: boolean;
-  parent_message: string | null;
+  parent_message?: string | null;
   last_updated: string;
+  avatar_config?: {
+    gender?: 'male' | 'female';
+    skin?: string;
+    hair?: string;
+    outfit?: string;
+    hat?: string;
+    hand?: string;
+    accessory?: string;
+    vehicle?: string;
+    owned_items?: string[];
+  };
+  bonus_stars?: number; // Sao thưởng từ GVCN hoặc nhiệm vụ ẩn
+  completed_hidden_tasks?: string[]; // Danh sách ID các nhiệm vụ ẩn đã làm
 }
 
 export interface TaskDef {

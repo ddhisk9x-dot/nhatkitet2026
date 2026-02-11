@@ -17,9 +17,10 @@ const LIXI_MESSAGES = [
 interface LiXiGameProps {
     studentName: string;
     onClose: () => void;
+    onOpen?: () => void;
 }
 
-const LiXiGame: React.FC<LiXiGameProps> = ({ studentName, onClose }) => {
+const LiXiGame: React.FC<LiXiGameProps> = ({ studentName, onClose, onOpen }) => {
     const [opened, setOpened] = useState(false);
     const [message, setMessage] = useState(LIXI_MESSAGES[0]);
     const [shaking, setShaking] = useState(false);
@@ -31,6 +32,7 @@ const LiXiGame: React.FC<LiXiGameProps> = ({ studentName, onClose }) => {
             const randomMsg = LIXI_MESSAGES[Math.floor(Math.random() * LIXI_MESSAGES.length)];
             setMessage(randomMsg);
             setOpened(true);
+            if (onOpen) onOpen();
 
             // Confetti burst
             confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ['#D90429', '#FFD60A', '#FB8500'] });

@@ -337,3 +337,88 @@ export const subscribeToBroadcast = (onUpdate: (payload: any) => void) => {
     })
     .subscribe();
 };
+
+export const updateStudentAvatar = async (studentCode: string, config: any) => {
+  // --- MOCK MODE ---
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      MOCK_DB[index] = { ...MOCK_DB[index], avatar_config: config, last_updated: new Date().toISOString() };
+      return { error: null };
+    }
+    return { error: 'Student not found in Mock DB' };
+  }
+
+  // --- REAL MODE ---
+  const { error } = await supabase
+    .from('students')
+    .update({ avatar_config: config })
+    .eq('student_code', studentCode);
+  return { error };
+};
+
+// ==========================================
+// NEW FEATURES: BONUS STARS & HIDDEN TASKS
+// ==========================================
+
+export const updateBonusStars = async (studentCode: string, amount: number) => {
+  // --- MOCK MODE ---
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      const current = MOCK_DB[index].bonus_stars || 0;
+      MOCK_DB[index] = { ...MOCK_DB[index], bonus_stars: current + amount, last_updated: new Date().toISOString() };
+      return { error: null };
+    }
+    return { error: 'Not found' };
+  }
+
+  // --- REAL MODE ---
+  const { data } = await supabase.from('students').select('bonus_stars').eq('student_code', studentCode).single();
+  const current = data?.bonus_stars || 0;
+
+  const { error } = await supabase
+    .from('students')
+    .update({ bonus_stars: current + amount })
+    .eq('student_code', studentCode);
+
+  return { error };
+};
+
+export const completeHiddenTask = async (studentCode: string, taskId: string, reward: number) => {
+  // --- MOCK MODE ---
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      const completed = MOCK_DB[index].completed_hidden_tasks || [];
+      if (completed.includes(taskId)) return { error: 'Already completed' }; // Prevent abuse
+
+      const currentBonus = MOCK_DB[index].bonus_stars || 0;
+      MOCK_DB[index] = {
+        ...MOCK_DB[index],
+        completed_hidden_tasks: [...completed, taskId],
+        bonus_stars: currentBonus + reward,
+        last_updated: new Date().toISOString()
+      };
+      return { error: null };
+    }
+    return { error: 'Not found' };
+  }
+
+  // --- REAL MODE ---
+  const { data } = await supabase.from('students').select('completed_hidden_tasks, bonus_stars').eq('student_code', studentCode).single();
+  const completed = data?.completed_hidden_tasks || [];
+  const currentBonus = data?.bonus_stars || 0;
+
+  if (completed.includes(taskId)) return { error: 'Already completed' };
+
+  const { error } = await supabase
+    .from('students')
+    .update({
+      completed_hidden_tasks: [...completed, taskId],
+      bonus_stars: currentBonus + reward
+    })
+    .eq('student_code', studentCode);
+
+  return { error };
+};
