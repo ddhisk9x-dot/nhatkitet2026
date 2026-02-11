@@ -15,14 +15,18 @@ const CayMaiLop: React.FC<CayMaiLopProps> = ({ darkMode }) => {
         const fetch = async () => {
             const { data } = await getAllStudents();
             if (data) {
+                // Chỉ đếm học sinh thật (bỏ tài khoản test, GVCN)
+                const realStudents = data.filter(s =>
+                    s.class_name && s.class_name !== 'GVCN' && !s.class_name.includes('TEST')
+                );
                 let total = 0;
-                data.forEach(s => {
+                realStudents.forEach(s => {
                     TASKS_LIST.forEach(t => {
                         if ((s[t.id] as number) > 0) total++;
                     });
                 });
                 setTotalFlowers(total);
-                setMaxFlowers(data.length * TASKS_LIST.length);
+                setMaxFlowers(realStudents.length * TASKS_LIST.length);
             }
             setLoading(false);
         };
