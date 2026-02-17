@@ -297,10 +297,12 @@ const App: React.FC = () => {
     if (!currentStudent) return;
 
     // Check lock
+    // Check lock
     const taskDef = TASKS_LIST.find(t => t.id === taskKey);
-    const today = new Date().toISOString().split('T')[0];
+    // Use local date for comparison to avoid UTC issues
+    const today = new Date().toLocaleDateString('en-CA');
     if (taskDef?.unlockDate && taskDef.unlockDate > today) {
-      alert(`Nhiệm vụ này sẽ mở vào: ${taskDef.unlockLabel}`);
+      alert(`🔒 Nhiệm vụ này đang KHÓA.\n📅 Sẽ mở vào: ${taskDef.unlockLabel}`);
       return;
     }
 
@@ -669,7 +671,7 @@ const App: React.FC = () => {
         {/* Tasks Grid */}
         <div className="grid grid-cols-1 gap-4">
           {TASKS_LIST.map((task) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA');
             const isLocked = task.unlockDate && task.unlockDate > today;
 
             return (
@@ -686,7 +688,9 @@ const App: React.FC = () => {
                 <div className="flex gap-3 mb-3">
                   <span className="text-4xl sm:text-3xl">{task.icon}</span>
                   <div className="flex-1">
-                    <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>{task.title}</h3>
+                    <h3 className={`font-bold text-lg font-hand ${darkMode ? 'text-yellow-400' : 'text-red-700'}`}>
+                      {task.title} {isLocked && <span className="text-sm text-gray-400 font-sans ml-2">(🔒 Khóa)</span>}
+                    </h3>
                     <p className={`text-sm sm:text-xs mt-1 font-medium leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{task.description}</p>
                     <p className={`text-xs sm:text-[10px] mt-2 italic border-t pt-1 border-dashed ${darkMode ? 'text-gray-400 border-gray-600' : 'text-gray-500 border-gray-200'}`}>🎯 {task.criteria}</p>
                   </div>

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars, resetStudentData } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
-import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone } from 'lucide-react';
+import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone, LayoutGrid, List } from 'lucide-react';
+import AvatarDisplay from './AvatarDisplay';
+import { AvatarConfig } from '../avatarData';
 
 interface TeacherDashboardProps {
   onLogout: () => void;
@@ -27,6 +29,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
   const [notification, setNotification] = useState('');
   const [showStats, setShowStats] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'students'>('overview'); // New state for tabs
+  const [viewMode, setViewMode] = useState<'list' | 'gallery'>('list'); // Toggle View
 
   // Bonus Star Modal
   const [bonusModal, setBonusModal] = useState<{ isOpen: boolean, student: Student | null, amount: number, reason: string }>({
@@ -362,16 +365,35 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
           )}
         </div>
 
-        {/* Search */}
-        <div className="bg-white p-3 rounded-xl shadow mb-4 flex gap-2 sticky top-20 z-20">
-          <Search className="text-gray-400" size={20} />
-          <input
-            type="text"
-            placeholder="Tìm tên hoặc mã số HS..."
-            className="flex-1 outline-none text-gray-700 text-sm"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+        {/* VIEW TOGGLE & SEARCH */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-4 items-center">
+          {/* View Mode Toggle */}
+          <div className="bg-white p-1 rounded-lg shadow border border-gray-200 flex gap-1 shrink-0">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded flex items-center gap-2 text-sm font-bold transition ${viewMode === 'list' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <List size={18} /> Danh sách
+            </button>
+            <button
+              onClick={() => setViewMode('gallery')}
+              className={`px-3 py-2 rounded flex items-center gap-2 text-sm font-bold transition ${viewMode === 'gallery' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:bg-gray-50'}`}
+            >
+              <LayoutGrid size={18} /> Xem Nhân Vật
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="bg-white p-2 rounded-lg shadow border border-gray-200 flex gap-2 flex-1 w-full">
+            <div className="p-2"><Search className="text-gray-400" size={20} /></div>
+            <input
+              type="text"
+              placeholder="Tìm tên hoặc mã số HS..."
+              className="flex-1 outline-none text-gray-700 text-sm"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
         {/* STATUS FILTER TABS */}
@@ -412,258 +434,311 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
           </button>
         </div>
 
-        {loading ? (
-          <div className="text-center py-10 text-gray-500">Đang tải danh sách...</div>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredStudents.map(student => {
-              let totalScore = 0;
-              TASKS_LIST.forEach(t => totalScore += (student[t.id] as number));
-              const maxScore = TASKS_LIST.length * 5;
-              const { civilPoints, money, percent } = calculateRewards(totalScore);
-              const isConfirmed = student.parent_confirm;
+        {
+          loading ? (
+            <div className="text-center py-10 text-gray-500">Đang tải danh sách...</div>
+          ) : viewMode === 'gallery' ? (
+            /* GALLERY VIEW */
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredStudents.map(student => {
+                let totalScore = 0;
+                TASKS_LIST.forEach(t => totalScore += (student[t.id] as number));
+                const maxScore = TASKS_LIST.length * 5;
+                const percent = (totalScore / maxScore) * 100;
+                const isConfirmed = student.parent_confirm;
 
-              return (
-                <div key={student.student_code} className={`bg-white p-4 rounded-xl shadow border-l-4 hover:shadow-lg transition relative ${isConfirmed ? 'border-l-green-500' : 'border-l-orange-500'}`}>
-                  {/* Rank Badge */}
-                  {sortOrder === 'stars' && (
-                    <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-yellow-400 text-red-800 font-bold flex items-center justify-center border-2 border-white shadow-md z-10">
-                      #{filteredStudents.indexOf(student) + 1}
+                return (
+                  <div key={student.student_code} className="bg-white rounded-xl shadow border border-gray-100 hover:shadow-lg transition overflow-hidden relative group">
+                    {/* Rank Badge */}
+                    <div className="absolute top-2 left-2 z-10 bg-yellow-400 text-red-800 text-[10px] font-bold px-1.5 py-0.5 rounded shadow">
+                      {totalScore} ⭐
                     </div>
-                  )}
 
-                  {/* Parent Confirm Status Badge */}
-                  <div className="absolute top-2 right-2">
-                    {isConfirmed ? (
-                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                        <CheckCircle size={10} /> Đã duyệt
-                      </span>
-                    ) : (
-                      <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
-                        <Clock size={10} /> Chờ PH
-                      </span>
+                    {/* Avatar Preview */}
+                    <div className="bg-gradient-to-b from-blue-50 to-white p-2 pt-4 relative">
+                      <div className="transform scale-[0.85] origin-bottom hover:scale-100 transition duration-300">
+                        <AvatarDisplay config={student.avatar_config as AvatarConfig} />
+                      </div>
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 border-t border-gray-100">
+                      <h3 className="font-bold text-gray-800 text-center truncate text-sm">{student.full_name}</h3>
+                      <p className="text-center text-xs text-gray-500 mb-2">{student.student_code}</p>
+
+                      {/* Items Summary */}
+                      <div className="flex justify-center gap-1 mb-2">
+                        {student.avatar_config?.outfit?.includes('outfit_') && student.avatar_config.outfit !== 'outfit_none' && <span title="Có trang phục" className="text-[10px] bg-purple-100 text-purple-600 px-1 py-0.5 rounded">👕</span>}
+                        {student.avatar_config?.hat?.includes('hat_') && student.avatar_config.hat !== 'hat_none' && <span title="Có mũ" className="text-[10px] bg-orange-100 text-orange-600 px-1 py-0.5 rounded">👒</span>}
+                        {student.avatar_config?.vehicle?.includes('veh_') && student.avatar_config.vehicle !== 'veh_none' && <span title="Có xe" className="text-[10px] bg-blue-100 text-blue-600 px-1 py-0.5 rounded">🚲</span>}
+                      </div>
+
+                      <button
+                        onClick={() => openEditModal(student)}
+                        className="w-full bg-blue-50 text-blue-600 text-xs font-bold py-1.5 rounded hover:bg-blue-100"
+                      >
+                        Chi tiết
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredStudents.map(student => {
+                let totalScore = 0;
+                TASKS_LIST.forEach(t => totalScore += (student[t.id] as number));
+                const maxScore = TASKS_LIST.length * 5;
+                const { civilPoints, money, percent } = calculateRewards(totalScore);
+                const isConfirmed = student.parent_confirm;
+
+                return (
+                  <div key={student.student_code} className={`bg-white p-4 rounded-xl shadow border-l-4 hover:shadow-lg transition relative ${isConfirmed ? 'border-l-green-500' : 'border-l-orange-500'}`}>
+                    {/* Rank Badge */}
+                    {sortOrder === 'stars' && (
+                      <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-yellow-400 text-red-800 font-bold flex items-center justify-center border-2 border-white shadow-md z-10">
+                        #{filteredStudents.indexOf(student) + 1}
+                      </div>
                     )}
-                  </div>
 
-                  <div className="flex justify-between items-start mb-2 pr-16">
-                    <div>
-                      <h3 className="font-bold text-gray-800">{student.full_name}</h3>
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
+                    {/* Parent Confirm Status Badge */}
+                    <div className="absolute top-2 right-2">
+                      {isConfirmed ? (
+                        <span className="bg-green-100 text-green-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                          <CheckCircle size={10} /> Đã duyệt
+                        </span>
+                      ) : (
+                        <span className="bg-orange-100 text-orange-700 text-[10px] px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                          <Clock size={10} /> Chờ PH
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex justify-between items-start mb-2 pr-16">
+                      <div>
+                        <h3 className="font-bold text-gray-800">{student.full_name}</h3>
+                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
+                      </div>
+                    </div>
+
+                    {/* Mini Progress Bar */}
+                    <div className="flex justify-between text-[10px] text-gray-500 mb-1">
+                      <span>Tiến độ: {Math.round(percent)}%</span>
+                      <span>{totalScore}/{maxScore} sao</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+                      <div className={`h-2 rounded-full transition-all ${isConfirmed ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${percent}%` }}></div>
+                    </div>
+
+                    {/* Reward Summary */}
+                    <div className="flex gap-2 mb-3 text-xs">
+                      <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && civilPoints > 0 ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
+                        {isConfirmed ? <CheckCircle size={10} /> : <Lock size={10} />} +{civilPoints} Điểm
+                      </div>
+                      <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && money > 0 ? 'bg-red-50 border-red-200 text-red-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
+                        {isConfirmed ? <Gift size={10} /> : <Lock size={10} />} +{money > 0 ? money / 1000 + 'k' : '0đ'}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => openEditModal(student)}
+                        className="flex-1 bg-blue-50 text-blue-600 py-2 rounded text-sm font-bold hover:bg-blue-100 flex justify-center items-center gap-1"
+                      >
+                        <Edit size={14} /> Chấm điểm
+                      </button>
+                      <button
+                        onClick={() => setBonusModal({ isOpen: true, student: student, amount: 1, reason: 'Thưởng nóng' })}
+                        className="bg-yellow-100 text-yellow-700 p-2 rounded hover:bg-yellow-200 text-xs flex flex-col items-center justify-center w-16"
+                        title="Thưởng sao"
+                      >
+                        <Star size={14} fill="currentColor" />
+                        <span className="scale-75">Thưởng</span>
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(student)}
+                        className="bg-gray-100 text-gray-600 p-2 rounded hover:bg-gray-200 text-xs flex flex-col items-center justify-center w-16"
+                        title="Reset Mật khẩu về mặc định"
+                      >
+                        <RefreshCw size={14} />
+                        <span className="scale-75">Reset</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Mini Progress Bar */}
-                  <div className="flex justify-between text-[10px] text-gray-500 mb-1">
-                    <span>Tiến độ: {Math.round(percent)}%</span>
-                    <span>{totalScore}/{maxScore} sao</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
-                    <div className={`h-2 rounded-full transition-all ${isConfirmed ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${percent}%` }}></div>
-                  </div>
-
-                  {/* Reward Summary */}
-                  <div className="flex gap-2 mb-3 text-xs">
-                    <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && civilPoints > 0 ? 'bg-green-50 border-green-200 text-green-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
-                      {isConfirmed ? <CheckCircle size={10} /> : <Lock size={10} />} +{civilPoints} Điểm
-                    </div>
-                    <div className={`px-2 py-1 rounded border flex items-center gap-1 ${isConfirmed && money > 0 ? 'bg-red-50 border-red-200 text-red-700 font-bold' : 'bg-gray-50 text-gray-400'}`}>
-                      {isConfirmed ? <Gift size={10} /> : <Lock size={10} />} +{money > 0 ? money / 1000 + 'k' : '0đ'}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => openEditModal(student)}
-                      className="flex-1 bg-blue-50 text-blue-600 py-2 rounded text-sm font-bold hover:bg-blue-100 flex justify-center items-center gap-1"
-                    >
-                      <Edit size={14} /> Chấm điểm
-                    </button>
-                    <button
-                      onClick={() => setBonusModal({ isOpen: true, student: student, amount: 1, reason: 'Thưởng nóng' })}
-                      className="bg-yellow-100 text-yellow-700 p-2 rounded hover:bg-yellow-200 text-xs flex flex-col items-center justify-center w-16"
-                      title="Thưởng sao"
-                    >
-                      <Star size={14} fill="currentColor" />
-                      <span className="scale-75">Thưởng</span>
-                    </button>
-                    <button
-                      onClick={() => handleResetPassword(student)}
-                      className="bg-gray-100 text-gray-600 p-2 rounded hover:bg-gray-200 text-xs flex flex-col items-center justify-center w-16"
-                      title="Reset Mật khẩu về mặc định"
-                    >
-                      <RefreshCw size={14} />
-                      <span className="scale-75">Reset</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </main>
+                );
+              })}
+            </div>
+          )
+        }
+      </main >
 
       {/* Modal Edit Detail */}
-      {selectedStudent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
-            <button onClick={closeEditModal} className="absolute top-4 right-4 text-gray-400 hover:text-black"><XCircle /></button>
+      {
+        selectedStudent && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl relative">
+              <button onClick={closeEditModal} className="absolute top-4 right-4 text-gray-400 hover:text-black"><XCircle /></button>
 
-            <h2 className="text-2xl font-bold text-red-600 mb-1">{selectedStudent.full_name}</h2>
-            <p className="text-sm text-gray-500 mb-4">Mã số: {selectedStudent.student_code}</p>
+              <h2 className="text-2xl font-bold text-red-600 mb-1">{selectedStudent.full_name}</h2>
+              <p className="text-sm text-gray-500 mb-4">Mã số: {selectedStudent.student_code}</p>
 
-            {/* Password Info */}
-            <div className="bg-yellow-50 p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
-              <span className="text-yellow-800 font-bold flex items-center gap-2">
-                <Key size={16} /> Mật khẩu hiện tại:
-                <span className="font-mono bg-white px-2 py-0.5 rounded border">
-                  {selectedStudent.password || selectedStudent.student_code}
+              {/* Password Info */}
+              <div className="bg-yellow-50 p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
+                <span className="text-yellow-800 font-bold flex items-center gap-2">
+                  <Key size={16} /> Mật khẩu hiện tại:
+                  <span className="font-mono bg-white px-2 py-0.5 rounded border">
+                    {selectedStudent.password || selectedStudent.student_code}
+                  </span>
                 </span>
-              </span>
-              <button
-                onClick={() => handleResetPassword(selectedStudent)}
-                className="text-xs text-blue-600 underline"
-              >
-                Reset
-              </button>
-            </div>
+                <button
+                  onClick={() => handleResetPassword(selectedStudent)}
+                  className="text-xs text-blue-600 underline"
+                >
+                  Reset
+                </button>
+              </div>
 
-            <div className="flex justify-end mb-4">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={handleResetAll}
+                  disabled={processing}
+                  className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold flex items-center gap-1"
+                >
+                  <RefreshCw size={12} className={processing ? "animate-spin" : ""} /> {processing ? "Đang xử lý..." : "Reset Tất Cả (Sao + Duyệt)"}
+                </button>
+              </div>
+
+              {/* Reward Detail in Modal */}
+              {(() => {
+                let totalScore = 0;
+                TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number) || 0);
+                totalScore += (selectedStudent.bonus_stars || 0);
+                const { civilPoints, money } = calculateRewards(totalScore);
+                const isConfirmed = selectedStudent.parent_confirm;
+
+                return (
+                  <div className={`p-4 rounded-xl border mb-4 flex items-center justify-between ${isConfirmed ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
+                    <div className="flex items-center gap-3">
+                      <Gift className={isConfirmed ? "text-green-600" : "text-gray-400"} />
+                      <div>
+                        <div className="text-xs text-gray-500 font-bold uppercase mb-1">
+                          Tổng Phần Thưởng {isConfirmed ? '(Đã duyệt)' : '(Chờ PH duyệt)'}
+                        </div>
+                        <div className={`font-bold ${isConfirmed ? 'text-green-800' : 'text-gray-500'}`}>
+                          +{civilPoints} điểm Văn Minh
+                          {money > 0 && <span className={`${isConfirmed ? 'text-red-600' : 'text-gray-500'} ml-1`}> & {money / 1000}k Lì Xì</span>}
+                        </div>
+                      </div>
+                    </div>
+                    {!isConfirmed && <Lock className="text-gray-400" />}
+                  </div>
+                )
+              })()}
+
+              {/* Tasks */}
+              <h3 className="font-bold text-gray-700 mb-2">Chấm điểm chi tiết</h3>
+              <div className="grid grid-cols-1 gap-2 mb-6 max-h-60 overflow-y-auto pr-2">
+                {TASKS_LIST.map(task => (
+                  <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 group">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-xl">{task.icon}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{task.title}</span>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {studentEvidence.filter(e => e.task_id === task.id).map((e, idx) => (
+                            <div key={idx} className="relative group w-8 h-8">
+                              <a href={e.image_url} target="_blank" rel="noreferrer" className="block w-full h-full rounded overflow-hidden border hover:scale-150 transition-transform origin-bottom-left relative z-10" title="Xem ảnh minh chứng">
+                                <img src={e.image_url} className="w-full h-full object-cover" alt="evidence" />
+                              </a>
+                              <button
+                                onClick={() => handleDeleteEvidence(e.id, e.image_url)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition z-20 scale-75 hover:scale-100 shadow-sm"
+                                title="Xóa ảnh"
+                              >
+                                <XCircle size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      type="number"
+                      min="0" max="5" step="0.5"
+                      className="w-16 border rounded p-1 text-center font-bold"
+                      value={selectedStudent[task.id] as number}
+                      onChange={(e) => handleTaskChange(task.id, parseFloat(e.target.value))}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Teacher Message */}
+              <h3 className="font-bold text-gray-700 mb-2">Lời chúc / Nhận xét của GVCN</h3>
+              <textarea
+                className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-4"
+                rows={3}
+                placeholder="Nhập lời nhận xét..."
+                value={editMessage}
+                onChange={(e) => setEditMessage(e.target.value)}
+              ></textarea>
+
               <button
-                onClick={handleResetAll}
+                onClick={handleSaveMessage}
                 disabled={processing}
-                className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold flex items-center gap-1"
+                className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 flex justify-center items-center gap-2"
               >
-                <RefreshCw size={12} className={processing ? "animate-spin" : ""} /> {processing ? "Đang xử lý..." : "Reset Tất Cả (Sao + Duyệt)"}
+                <Save size={18} /> {selectedStudent.parent_confirm ? 'Lưu Thay Đổi' : 'Xác Nhận Thay PH & Lưu'}
               </button>
             </div>
-
-            {/* Reward Detail in Modal */}
-            {(() => {
-              let totalScore = 0;
-              TASKS_LIST.forEach(t => totalScore += (selectedStudent[t.id] as number) || 0);
-              totalScore += (selectedStudent.bonus_stars || 0);
-              const { civilPoints, money } = calculateRewards(totalScore);
-              const isConfirmed = selectedStudent.parent_confirm;
-
-              return (
-                <div className={`p-4 rounded-xl border mb-4 flex items-center justify-between ${isConfirmed ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gray-100 border-gray-200'}`}>
-                  <div className="flex items-center gap-3">
-                    <Gift className={isConfirmed ? "text-green-600" : "text-gray-400"} />
-                    <div>
-                      <div className="text-xs text-gray-500 font-bold uppercase mb-1">
-                        Tổng Phần Thưởng {isConfirmed ? '(Đã duyệt)' : '(Chờ PH duyệt)'}
-                      </div>
-                      <div className={`font-bold ${isConfirmed ? 'text-green-800' : 'text-gray-500'}`}>
-                        +{civilPoints} điểm Văn Minh
-                        {money > 0 && <span className={`${isConfirmed ? 'text-red-600' : 'text-gray-500'} ml-1`}> & {money / 1000}k Lì Xì</span>}
-                      </div>
-                    </div>
-                  </div>
-                  {!isConfirmed && <Lock className="text-gray-400" />}
-                </div>
-              )
-            })()}
-
-            {/* Tasks */}
-            <h3 className="font-bold text-gray-700 mb-2">Chấm điểm chi tiết</h3>
-            <div className="grid grid-cols-1 gap-2 mb-6 max-h-60 overflow-y-auto pr-2">
-              {TASKS_LIST.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50 group">
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-xl">{task.icon}</span>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium">{task.title}</span>
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {studentEvidence.filter(e => e.task_id === task.id).map((e, idx) => (
-                          <div key={idx} className="relative group w-8 h-8">
-                            <a href={e.image_url} target="_blank" rel="noreferrer" className="block w-full h-full rounded overflow-hidden border hover:scale-150 transition-transform origin-bottom-left relative z-10" title="Xem ảnh minh chứng">
-                              <img src={e.image_url} className="w-full h-full object-cover" alt="evidence" />
-                            </a>
-                            <button
-                              onClick={() => handleDeleteEvidence(e.id, e.image_url)}
-                              className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition z-20 scale-75 hover:scale-100 shadow-sm"
-                              title="Xóa ảnh"
-                            >
-                              <XCircle size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="number"
-                    min="0" max="5" step="0.5"
-                    className="w-16 border rounded p-1 text-center font-bold"
-                    value={selectedStudent[task.id] as number}
-                    onChange={(e) => handleTaskChange(task.id, parseFloat(e.target.value))}
-                  />
-                </div>
-              ))}
-            </div>
-
-            {/* Teacher Message */}
-            <h3 className="font-bold text-gray-700 mb-2">Lời chúc / Nhận xét của GVCN</h3>
-            <textarea
-              className="w-full border p-3 rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-4"
-              rows={3}
-              placeholder="Nhập lời nhận xét..."
-              value={editMessage}
-              onChange={(e) => setEditMessage(e.target.value)}
-            ></textarea>
-
-            <button
-              onClick={handleSaveMessage}
-              disabled={processing}
-              className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 flex justify-center items-center gap-2"
-            >
-              <Save size={18} /> {selectedStudent.parent_confirm ? 'Lưu Thay Đổi' : 'Xác Nhận Thay PH & Lưu'}
-            </button>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* BONUS STAR MODAL */}
-      {bonusModal.isOpen && bonusModal.student && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
-              <Star className="text-yellow-400 fill-yellow-400" /> Thưởng Sao
-            </h3>
-            <p className="mb-4">Học sinh: <b>{bonusModal.student.full_name}</b></p>
+      {
+        bonusModal.isOpen && bonusModal.student && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl p-6 w-full max-w-sm shadow-xl">
+              <h3 className="text-xl font-bold flex items-center gap-2 mb-4">
+                <Star className="text-yellow-400 fill-yellow-400" /> Thưởng Sao
+              </h3>
+              <p className="mb-4">Học sinh: <b>{bonusModal.student.full_name}</b></p>
 
-            <div className="grid grid-cols-4 gap-2 mb-4">
-              {[1, 2, 5, 10].map(amt => (
-                <button
-                  key={amt}
-                  onClick={() => setBonusModal({ ...bonusModal, amount: amt })}
-                  className={`py-2 rounded font-bold border ${bonusModal.amount === amt ? 'bg-yellow-400 border-yellow-500 text-red-900' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
-                >
-                  +{amt}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {[1, 2, 5, 10].map(amt => (
+                  <button
+                    key={amt}
+                    onClick={() => setBonusModal({ ...bonusModal, amount: amt })}
+                    className={`py-2 rounded font-bold border ${bonusModal.amount === amt ? 'bg-yellow-400 border-yellow-500 text-red-900' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    +{amt}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-4">
+                <label className="text-xs font-bold text-gray-500">Số lượng tùy chỉnh:</label>
+                <input
+                  type="number"
+                  value={bonusModal.amount}
+                  onChange={(e) => setBonusModal({ ...bonusModal, amount: Number(e.target.value) })}
+                  className="w-full border p-2 rounded mt-1 font-bold text-center text-lg"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={() => setBonusModal({ ...bonusModal, isOpen: false })} className="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold">Hủy</button>
+                <button onClick={handleGiveBonus} disabled={processing} className="flex-1 px-4 py-2 bg-yellow-400 text-red-800 rounded-lg hover:bg-yellow-300 font-bold border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 transition-all">
+                  {processing ? 'Đang gửi...' : 'Xác Nhận'}
                 </button>
-              ))}
-            </div>
-
-            <div className="mb-4">
-              <label className="text-xs font-bold text-gray-500">Số lượng tùy chỉnh:</label>
-              <input
-                type="number"
-                value={bonusModal.amount}
-                onChange={(e) => setBonusModal({ ...bonusModal, amount: Number(e.target.value) })}
-                className="w-full border p-2 rounded mt-1 font-bold text-center text-lg"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={() => setBonusModal({ ...bonusModal, isOpen: false })} className="flex-1 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-bold">Hủy</button>
-              <button onClick={handleGiveBonus} disabled={processing} className="flex-1 px-4 py-2 bg-yellow-400 text-red-800 rounded-lg hover:bg-yellow-300 font-bold border-b-4 border-yellow-600 active:border-b-0 active:translate-y-1 transition-all">
-                {processing ? 'Đang gửi...' : 'Xác Nhận'}
-              </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
