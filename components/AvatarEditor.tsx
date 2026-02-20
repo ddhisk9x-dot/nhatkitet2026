@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { updateStudentAvatar } from '../services/supabaseService';
+import { updateStudentAvatar, resetStudentGender, resetStudentAvatarItems } from '../services/supabaseService';
 import { Student } from '../types';
-import { X, User } from 'lucide-react';
+import { X, User, RefreshCw } from 'lucide-react';
 
 // ============================================================
 // AVATAR SYSTEM - Full Body + Overlay Items
@@ -135,7 +135,7 @@ interface AvatarEditorProps {
 }
 
 interface AvatarConfig {
-    gender: Gender;
+    gender?: Gender;
     outfit: string;
     hat: string;
     accessory: string;
@@ -144,7 +144,6 @@ interface AvatarConfig {
 }
 
 const DEFAULT_CONFIG: AvatarConfig = {
-    gender: 'male',
     outfit: 'outfit_none',
     hat: 'hat_none',
     accessory: 'acc_none',
@@ -155,9 +154,9 @@ const DEFAULT_CONFIG: AvatarConfig = {
 const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate, totalScore }) => {
     // Migrate old config
     const migrateConfig = (old: any): AvatarConfig => {
-        if (!old) return DEFAULT_CONFIG;
+        if (!old) return { ...DEFAULT_CONFIG, gender: undefined }; // Use undefined to force setup
         return {
-            gender: old.gender || 'male',
+            gender: old.gender,
             outfit: old.outfit?.startsWith('outfit_') ? old.outfit : 'outfit_none',
             hat: old.hat?.startsWith('hat_') ? old.hat : 'hat_none',
             accessory: old.accessory?.startsWith('acc_') ? old.accessory : (old.hand?.startsWith('acc_') ? old.hand : 'acc_none'),
@@ -192,6 +191,33 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
             alert("Lỗi lưu: " + msg);
         }
         onUpdate();
+    };
+
+    const handleResetGender = async () => {
+        if (!window.confirm("Bạn có chắc muốn CHỌN LẠI GIỚI TÍNH? Bạn chỉ có 1 lần duy nhất để đổi!")) return;
+        setSaving(true);
+        const res = await resetStudentGender(student.student_code, false);
+        setSaving(false);
+        if (res.error) {
+            alert("Không thể đổi giới tính: " + (typeof res.error === 'string' ? res.error : res.error.message));
+        } else {
+            alert("Bạn đã được cấp quyền chọn lại giới tính. Hãy chọn lại nhé!");
+            onUpdate(); // Sẽ load lại và hiện popup chọn giới tính
+            setIsSetupDone(false); // Reset cờ setup
+        }
+    };
+
+    const handleResetAvatarItems = async () => {
+        if (!window.confirm("Bạn có chắc muốn TRẢ LẠI ĐỒ ĐÃ MUA? \nToàn bộ đồ sẽ bị lấy lại và bạn sẽ nhận lại đủ sao.\nBạn chỉ có 1 LẦN DUY NHẤT để làm việc này!")) return;
+        setSaving(true);
+        const res = await resetStudentAvatarItems(student.student_code, false);
+        setSaving(false);
+        if (res.error) {
+            alert("Không thể hoàn trả đồ: " + (typeof res.error === 'string' ? res.error : res.error.message));
+        } else {
+            alert("Đã trả lại toàn bộ đồ và hoàn lại sao. Hãy mua sắm lại nhé!");
+            onUpdate();
+        }
     };
 
     // Buy or equip
@@ -234,7 +260,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
     // AVATAR STAGE: Full body + overlay items
     // ============================================================
     const renderAvatarStage = () => {
-        const charSrc = CHAR_IMAGES[config.gender];
+        const charSrc = config.gender ? CHAR_IMAGES[config.gender] : CHAR_IMAGES['male'];
 
         // Collect equipped overlay sources (in render order)
         const overlays: { src: string; z: number; alt: string }[] = [];
@@ -319,13 +345,13 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
     // ============================================================
     // GENDER SELECTION (First Time Setup)
     // ============================================================
-    if (!student.avatar_config && !isSetupDone) {
+    if ((!student.avatar_config || !student.avatar_config.gender) && !isSetupDone) {
         return (
             <div className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 animate-fadeIn font-sans">
                 <div className="bg-[#1a1a2e] rounded-3xl w-full max-w-2xl p-8 text-center border border-gray-700 shadow-2xl">
                     <h2 className="text-3xl font-bold text-white mb-2">Chào mừng bạn mới! 👋</h2>
                     <p className="text-gray-400 mb-8">Hãy chọn giới tính nhân vật.<br />
-                        <span className="text-red-400 font-bold">(Lưu ý: Không thể thay đổi sau!)</span>
+                        <span className="text-red-400 font-bold">(Lưu ý: Bạn chỉ có 1 lần duy nhất để đổi lại sau này!)</span>
                     </p>
                     <div className="flex flex-col sm:flex-row gap-6 justify-center">
                         {(['male', 'female'] as Gender[]).map(g => (
@@ -333,7 +359,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
                                 key={g}
                                 onClick={async () => {
                                     const label = g === 'male' ? 'NAM' : 'NỮ';
-                                    if (window.confirm(`Chọn nhân vật ${label}? Không đổi được đâu nhé!`)) {
+                                    if (window.confirm(`Chọn nhân vật ${label}?`)) {
                                         const newConfig: AvatarConfig = { ...DEFAULT_CONFIG, gender: g };
                                         setConfig(newConfig);
                                         setIsSetupDone(true);
@@ -362,6 +388,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
     // MAIN EDITOR UI
     // ============================================================
     const tabItems = SHOP_ITEMS.filter(item => item.type === activeTab);
+    const charGender = config.gender || 'male'; // Fallback for rendering
 
     return (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4 animate-fadeIn font-sans">
@@ -384,7 +411,7 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
 
                     {/* Gender Badge */}
                     <div className="absolute top-4 right-4 z-20">
-                        <div className={`${config.gender === 'male' ? 'bg-blue-600' : 'bg-pink-600'} text-white p-2 rounded-full shadow-lg`}>
+                        <div className={`${charGender === 'male' ? 'bg-blue-600' : 'bg-pink-600'} text-white p-2 rounded-full shadow-lg`}>
                             <User size={16} />
                         </div>
                     </div>
@@ -417,8 +444,22 @@ const AvatarEditor: React.FC<AvatarEditorProps> = ({ student, onClose, onUpdate,
                         </div>
                     </div>
 
+                    {/* Reset Actions */}
+                    <div className="absolute bottom-16 sm:bottom-4 left-0 right-0 flex justify-center gap-2 px-4 z-30">
+                        {!student.has_reset_gender && (
+                            <button onClick={handleResetGender} className="bg-red-500/80 hover:bg-red-600 text-white text-xs py-2 px-3 rounded-lg shadow-lg flex items-center gap-1 transition-colors backdrop-blur">
+                                <RefreshCw size={14} /> Chọn lại giới tính (1 lần)
+                            </button>
+                        )}
+                        {!student.has_reset_avatar && (
+                            <button onClick={handleResetAvatarItems} className="bg-orange-500/80 hover:bg-orange-600 text-white text-xs py-2 px-3 rounded-lg shadow-lg flex items-center gap-1 transition-colors backdrop-blur">
+                                <RefreshCw size={14} /> Hoàn trả đồ mua (1 lần)
+                            </button>
+                        )}
+                    </div>
+
                     {/* Mobile Footer */}
-                    <div className="md:hidden w-full mt-4">
+                    <div className="md:hidden w-full mt-4 z-40">
                         <button onClick={onClose} className="w-full bg-gray-600 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95">
                             Đóng (Đã lưu)
                         </button>

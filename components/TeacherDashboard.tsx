@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars, resetStudentData } from '../services/supabaseService';
+import { getAllStudents, resetStudentPassword, updateTask, updateParentConfirm, subscribeToStudents, unsubscribeChannel, getEvidence, deleteEvidence, updateBroadcast, getBroadcast, updateBonusStars, resetStudentData, resetStudentGender, resetStudentAvatarItems } from '../services/supabaseService';
 import { Student, TASKS_LIST, TaskEvidence } from '../types';
 import { Search, RefreshCw, CheckCircle, XCircle, Edit, Save, LogOut, Key, Star, Gift, Clock, Lock, Download, FileText, BarChart3, Send, Bell, Filter, Image as ImageIcon, Trash2, Megaphone, LayoutGrid, List } from 'lucide-react';
 import AvatarDisplay from './AvatarDisplay';
@@ -599,11 +599,39 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
                 </button>
               </div>
 
-              <div className="flex justify-end mb-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 mb-4">
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Xác nhận cho phép HS ${selectedStudent.full_name} chọn lại giới tính?`)) return;
+                    setProcessing(true);
+                    const res = await resetStudentGender(selectedStudent.student_code, true);
+                    setProcessing(false);
+                    if (res.error) alert("Lỗi: " + (typeof res.error === 'string' ? res.error : res.error.message));
+                    else alert("Đã reset giới tính thành công!");
+                  }}
+                  disabled={processing}
+                  className="text-xs bg-blue-100 text-blue-600 px-3 py-2 rounded hover:bg-blue-200 font-bold flex items-center justify-center gap-1 flex-1 sm:flex-none"
+                >
+                  Chọn lại Giới tính
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Xác nhận thu hồi toàn bộ đồ đeo trên người của HS ${selectedStudent.full_name} và hoàn lại sao?`)) return;
+                    setProcessing(true);
+                    const res = await resetStudentAvatarItems(selectedStudent.student_code, true);
+                    setProcessing(false);
+                    if (res.error) alert("Lỗi: " + (typeof res.error === 'string' ? res.error : res.error.message));
+                    else alert("Đã thu hồi đồ và hoàn sao thành công!");
+                  }}
+                  disabled={processing}
+                  className="text-xs bg-orange-100 text-orange-600 px-3 py-2 rounded hover:bg-orange-200 font-bold flex items-center justify-center gap-1 flex-1 sm:flex-none"
+                >
+                  Thu hồi đồ & Hoàn sao
+                </button>
                 <button
                   onClick={handleResetAll}
                   disabled={processing}
-                  className="text-xs bg-red-100 text-red-600 px-3 py-1 rounded hover:bg-red-200 font-bold flex items-center gap-1"
+                  className="text-xs bg-red-100 text-red-600 px-3 py-2 rounded hover:bg-red-200 font-bold flex items-center justify-center gap-1 w-full sm:w-auto mt-2 sm:mt-0"
                 >
                   <RefreshCw size={12} className={processing ? "animate-spin" : ""} /> {processing ? "Đang xử lý..." : "Reset Tất Cả (Sao + Duyệt)"}
                 </button>

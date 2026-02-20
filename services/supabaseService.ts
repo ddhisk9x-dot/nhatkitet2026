@@ -482,3 +482,86 @@ export const resetStudentData = async (studentCode: string) => {
 
   return { error };
 };
+
+export const resetStudentGender = async (studentCode: string, isTeacher: boolean = false) => {
+  const { data: student } = await getStudent(studentCode);
+  if (!student) return { error: 'Student not found' };
+
+  if (!isTeacher && student.has_reset_gender) {
+    return { error: 'Bạn đã sử dụng hết lượt đổi giới tính!' };
+  }
+
+  // Preserve other avatar config, just clear gender
+  let newConfig = student.avatar_config || {
+    outfit: 'outfit_none',
+    hat: 'hat_none',
+    accessory: 'acc_none',
+    vehicle: 'veh_none',
+    owned_items: []
+  };
+
+  delete newConfig.gender;
+
+  const updateData: any = { avatar_config: newConfig };
+  if (!isTeacher) {
+    updateData.has_reset_gender = true;
+  }
+
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      MOCK_DB[index] = { ...MOCK_DB[index], ...updateData, last_updated: new Date().toISOString() };
+      return { error: null };
+    }
+    return { error: 'Not found in Mock DB' };
+  }
+
+  const { error } = await supabase
+    .from('students')
+    .update(updateData)
+    .eq('student_code', studentCode);
+
+  return { error };
+};
+
+export const resetStudentAvatarItems = async (studentCode: string, isTeacher: boolean = false) => {
+  const { data: student } = await getStudent(studentCode);
+  if (!student) return { error: 'Student not found' };
+
+  if (!isTeacher && student.has_reset_avatar) {
+    return { error: 'Bạn đã sử dụng hết lượt hoàn trả đồ mua!' };
+  }
+
+  // Reset to default items and empty owned_items, but preserve gender
+  const currentGender = student.avatar_config?.gender || 'male';
+  let newConfig = {
+    gender: currentGender,
+    outfit: 'outfit_none',
+    hat: 'hat_none',
+    accessory: 'acc_none',
+    vehicle: 'veh_none',
+    owned_items: ['outfit_none', 'hat_none', 'acc_none', 'veh_none']
+  };
+
+  const updateData: any = { avatar_config: newConfig };
+  if (!isTeacher) {
+    updateData.has_reset_avatar = true;
+  }
+
+  if (!supabase) {
+    const index = MOCK_DB.findIndex(s => s.student_code === studentCode);
+    if (index !== -1) {
+      MOCK_DB[index] = { ...MOCK_DB[index], ...updateData, last_updated: new Date().toISOString() };
+      return { error: null };
+    }
+    return { error: 'Not found in Mock DB' };
+  }
+
+  const { error } = await supabase
+    .from('students')
+    .update(updateData)
+    .eq('student_code', studentCode);
+
+  return { error };
+};
+

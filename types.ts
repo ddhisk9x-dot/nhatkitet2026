@@ -31,6 +31,8 @@ export interface Student {
   avatar_config?: AvatarConfig;
   bonus_stars?: number; // Sao thưởng từ GVCN hoặc nhiệm vụ ẩn
   completed_hidden_tasks?: string[]; // Danh sách ID các nhiệm vụ ẩn đã làm
+  has_reset_gender?: boolean; // Học sinh đã dùng quyền đổi giới tính chưa
+  has_reset_avatar?: boolean; // Học sinh đã dùng quyền reset avatar chưa
 }
 
 export interface TaskDef {
