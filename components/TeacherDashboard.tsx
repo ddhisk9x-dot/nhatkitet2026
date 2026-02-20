@@ -464,7 +464,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
                     {/* Info */}
                     <div className="p-3 border-t border-gray-100">
                       <h3 className="font-bold text-gray-800 text-center truncate text-sm">{student.full_name}</h3>
-                      <p className="text-center text-xs text-gray-500 mb-2">{student.student_code}</p>
+                      <div className="flex justify-center items-center gap-2 mb-2">
+                        <p className="text-center text-xs text-gray-500">{student.student_code}</p>
+                        {(student.bonus_stars || 0) > 0 && (
+                          <span className="text-[10px] bg-yellow-100 text-yellow-700 font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                            <Star size={8} fill="currentColor" /> +{student.bonus_stars}
+                          </span>
+                        )}
+                      </div>
 
                       {/* Items Summary */}
                       <div className="flex justify-center gap-1 mb-2">
@@ -518,7 +525,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
                     <div className="flex justify-between items-start mb-2 pr-16">
                       <div>
                         <h3 className="font-bold text-gray-800">{student.full_name}</h3>
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
+                        <div className="flex gap-2 items-center mt-1">
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">{student.student_code}</span>
+                          {(student.bonus_stars || 0) > 0 && (
+                            <span className="bg-yellow-100 text-yellow-700 text-[10px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
+                              <Star size={10} fill="currentColor" /> +{student.bonus_stars} sao
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -581,7 +595,14 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ onLogout }) => {
               <button onClick={closeEditModal} className="absolute top-4 right-4 text-gray-400 hover:text-black"><XCircle /></button>
 
               <h2 className="text-2xl font-bold text-red-600 mb-1">{selectedStudent.full_name}</h2>
-              <p className="text-sm text-gray-500 mb-4">Mã số: {selectedStudent.student_code}</p>
+              <div className="flex items-center gap-2 mb-4">
+                <p className="text-sm text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Mã số: {selectedStudent.student_code}</p>
+                {(selectedStudent.bonus_stars || 0) > 0 && (
+                  <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full font-bold flex items-center gap-1 shadow-sm">
+                    <Star size={12} fill="currentColor" /> Đã thưởng: {selectedStudent.bonus_stars} sao
+                  </span>
+                )}
+              </div>
 
               {/* Password Info */}
               <div className="bg-yellow-50 p-3 rounded-lg mb-4 text-sm flex items-center justify-between">
